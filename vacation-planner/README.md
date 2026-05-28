@@ -20,6 +20,10 @@ Prototype local pentru planificarea concediilor de familie.
 - Calculează combustibil și taxe pe țări de tranzit, cu valori editabile.
 - Poate actualiza online prețurile pentru benzină, diesel și GPL prin endpoint server.
 - Estimează taxele de drum pe țări: rovinietă/vignetă sau €/km pe autostrăzi taxate.
+- Salvează și încarcă scenarii multiple: Permite salvarea planului curent sub un nume personalizat (salvate local în browser), comutarea rapidă între ele și ștergerea lor.
+- Checklist dinamic de pregătire: Generează automat sarcini pe baza traseului, cum ar fi achiziția de vignete specifice pentru țările tranzitate (RO, BG, HU, AT, SI, SK, CZ), verificarea pașaportului/cărții verzi pentru granițele non-UE (Serbia, Albania etc.), inspecția tehnică a mașinii și pregătiri speciale dacă sunt adăugați copii.
+- Vreme în timp real la destinație: Afișează temperatura și condițiile meteo curente prin API-ul public gratuit Open-Meteo.
+- Export PDF / Imprimare: Permite generarea unui raport complet de călătorie optimizat pentru print (rezumat costuri, cheltuieli pe țări, itinerar pe zile și checklist-ul complet).
 - Descarcă un JSON cu prețuri combustibil, taxe și structura curentă de traseu.
 - Propune opriri pe traseu, zone de văzut și cazări candidate.
 - Generează un plan pe zile și exportă scenariul în JSON.
