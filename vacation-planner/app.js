@@ -78,6 +78,33 @@ const cityCatalog = [
   ["Ploiești, România", "RO", 44.9367, 26.0129],
   ["Suceava, România", "RO", 47.6635, 26.2732],
   ["Târgu Mureș, România", "RO", 46.5386, 24.5514],
+  ["Drobeta-Turnu Severin, România", "RO", 44.6258, 22.6532],
+  ["Galați, România", "RO", 45.4353, 28.0080],
+  ["Brăila, România", "RO", 45.2692, 27.9575],
+  ["Bacău, România", "RO", 46.567, 26.914],
+  ["Baia Mare, România", "RO", 47.656, 23.582],
+  ["Satu Mare, România", "RO", 47.79, 22.89],
+  ["Deva, România", "RO", 45.88, 22.90],
+  ["Alba Iulia, România", "RO", 46.07, 23.57],
+  ["Râmnicu Vâlcea, România", "RO", 45.10, 24.37],
+  ["Târgu Jiu, România", "RO", 45.03, 23.27],
+  ["Zalău, România", "RO", 47.19, 23.05],
+  ["Bistrița, România", "RO", 47.13, 24.49],
+  ["Botoșani, România", "RO", 47.74, 26.66],
+  ["Piatra Neamț, România", "RO", 46.93, 26.37],
+  ["Focșani, România", "RO", 45.70, 27.18],
+  ["Buzău, România", "RO", 45.15, 26.82],
+  ["Târgoviște, România", "RO", 44.93, 25.46],
+  ["Slatina, România", "RO", 44.43, 24.36],
+  ["Reșița, România", "RO", 45.30, 21.89],
+  ["Alexandria, România", "RO", 43.97, 25.33],
+  ["Slobozia, România", "RO", 44.56, 27.37],
+  ["Călărași, România", "RO", 44.20, 27.33],
+  ["Giurgiu, România", "RO", 43.90, 25.97],
+  ["Tulcea, România", "RO", 45.18, 28.80],
+  ["Vaslui, România", "RO", 46.64, 27.73],
+  ["Sfântu Gheorghe, România", "RO", 45.86, 25.79],
+  ["Miercurea Ciuc, România", "RO", 46.36, 25.80],
   ["Ruse, Bulgaria", "BG", 43.8356, 25.9657],
   ["Sofia, Bulgaria", "BG", 42.6977, 23.3219],
   ["Varna, Bulgaria", "BG", 43.2141, 27.9147],
@@ -125,7 +152,22 @@ const cityCatalog = [
   ["Los Angeles, Statele Unite", "US", 34.0522, -118.2437]
 ].map(([name, countryCode, lat, lon]) => ({ name, countryCode, lat, lon }));
 
-const reverseCountryCache = new Map();
+const REVERSE_COUNTRY_CACHE_KEY = "familyTripPlanner:reverse_country_cache";
+let reverseCountryCache = new Map();
+try {
+  const cachedData = JSON.parse(localStorage.getItem(REVERSE_COUNTRY_CACHE_KEY) || "[]");
+  reverseCountryCache = new Map(cachedData);
+} catch (e) {
+  console.warn("Failed to load reverse country cache", e);
+}
+
+function saveReverseCountryCache() {
+  try {
+    localStorage.setItem(REVERSE_COUNTRY_CACHE_KEY, JSON.stringify([...reverseCountryCache.entries()]));
+  } catch (e) {
+    console.warn("Failed to save reverse country cache", e);
+  }
+}
 
 const corridorMap = {
   "RO-GR": ["RO", "BG", "GR"],
@@ -820,16 +862,19 @@ function roundTo(value, step) {
 }
 
 function findLocalCity(query) {
-  const needle = normalize(query);
+  const needle = normalize(query).replaceAll("-", " ");
   if (!needle) return null;
-  const directMatch = cityCatalog.find((city) => normalize(city.name) === needle || normalize(city.name).startsWith(needle));
+  const directMatch = cityCatalog.find((city) => {
+    const normName = normalize(city.name).replaceAll("-", " ");
+    return normName === needle || normName.startsWith(needle);
+  });
   if (directMatch) return directMatch;
 
   const cityPart = needle.split(",")[0]?.trim();
   const countryCode = countryCodeFromText(query);
   if (!cityPart) return null;
   return cityCatalog.find((city) => {
-    const catalogCity = normalize(city.name).split(",")[0]?.trim();
+    const catalogCity = normalize(city.name).replaceAll("-", " ").split(",")[0]?.trim();
     return catalogCity === cityPart && (!countryCode || city.countryCode === countryCode);
   }) || null;
 }
@@ -860,7 +905,10 @@ async function geocodePlace(query) {
     url.searchParams.set("limit", "1");
     url.searchParams.set("q", q);
     const response = await fetch(url.toString(), {
-      headers: { Accept: "application/json" }
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "FamilyTripPlanner/1.0 (sebastian@msecur.ro)"
+      }
     });
     if (!response.ok) throw new Error("Geocoding indisponibil");
     const results = await response.json();
@@ -937,6 +985,7 @@ async function reverseCountryAt(lon, lat) {
   const key = reverseCountryKey(lon, lat);
   if (reverseCountryCache.has(key)) return reverseCountryCache.get(key);
 
+  let code = null;
   try {
     const url = new URL("https://api.bigdatacloud.net/data/reverse-geocode-client");
     url.searchParams.set("latitude", lat);
@@ -947,36 +996,37 @@ async function reverseCountryAt(lon, lat) {
     });
     if (!response.ok) throw new Error("Reverse geocoding principal indisponibil");
     const data = await response.json();
-    const code = String(data.countryCode || "").toUpperCase() || null;
-    if (code) {
-      reverseCountryCache.set(key, code);
-      return code;
-    }
+    code = String(data.countryCode || "").toUpperCase() || null;
   } catch (error) {
     console.info("Country reverse primary fallback:", error.message);
   }
 
-  try {
-    const url = new URL("https://nominatim.openstreetmap.org/reverse");
-    url.searchParams.set("format", "jsonv2");
-    url.searchParams.set("addressdetails", "1");
-    url.searchParams.set("zoom", "5");
-    url.searchParams.set("accept-language", "ro,en");
-    url.searchParams.set("lat", lat);
-    url.searchParams.set("lon", lon);
-    const response = await fetch(url.toString(), {
-      headers: { Accept: "application/json" }
-    });
-    if (!response.ok) throw new Error("Reverse geocoding indisponibil");
-    const data = await response.json();
-    const code = String(data.address?.country_code || data.country_code || "").toUpperCase() || null;
-    reverseCountryCache.set(key, code);
-    return code;
-  } catch (error) {
-    console.info("Country reverse fallback:", error.message);
-    reverseCountryCache.set(key, null);
-    return null;
+  if (!code) {
+    try {
+      const url = new URL("https://nominatim.openstreetmap.org/reverse");
+      url.searchParams.set("format", "jsonv2");
+      url.searchParams.set("addressdetails", "1");
+      url.searchParams.set("zoom", "5");
+      url.searchParams.set("accept-language", "ro,en");
+      url.searchParams.set("lat", lat);
+      url.searchParams.set("lon", lon);
+      const response = await fetch(url.toString(), {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "FamilyTripPlanner/1.0 (sebastian@msecur.ro)"
+        }
+      });
+      if (!response.ok) throw new Error("Reverse geocoding indisponibil");
+      const data = await response.json();
+      code = String(data.address?.country_code || data.country_code || "").toUpperCase() || null;
+    } catch (error) {
+      console.info("Country reverse fallback:", error.message);
+    }
   }
+
+  reverseCountryCache.set(key, code);
+  saveReverseCountryCache();
+  return code;
 }
 
 function coordinateAtDistance(coordinates, cumulativeKm, targetKm) {
@@ -1076,9 +1126,15 @@ async function inferRouteZonesFromRouteSegments(routeSegments, fuelType) {
     const codes = [];
     for (let index = 0; index < samples.length; index += 1) {
       const sample = samples[index];
-      let code = await reverseCountryAt(sample.lon, sample.lat);
-      if (!code && index === 0) code = getCountryCode(segment.fromPlace);
-      if (!code && index === samples.length - 1) code = getCountryCode(segment.toPlace);
+      let code = null;
+      if (index === 0) {
+        code = getCountryCode(segment.fromPlace);
+      } else if (index === samples.length - 1) {
+        code = getCountryCode(segment.toPlace);
+      }
+      if (!code || code === "DEFAULT") {
+        code = await reverseCountryAt(sample.lon, sample.lat);
+      }
       codes.push(code && code !== "DEFAULT" ? code : null);
     }
 
@@ -1528,12 +1584,55 @@ function syncAiUi() {
   }
 }
 
+function getSavedAiData() {
+  const key = "familyTripPlanner:ai_data:" + getChecklistKey();
+  try {
+    return JSON.parse(localStorage.getItem(key)) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function parseAndSaveStructuredAiData(text) {
+  if (!text) return text;
+
+  const startTag = "<structured_data>";
+  const endTag = "</structured_data>";
+  const startIndex = text.indexOf(startTag);
+  const endIndex = text.indexOf(endTag);
+
+  if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+    const jsonStr = text.substring(startIndex + startTag.length, endIndex).trim();
+    const cleanText = (text.substring(0, startIndex) + text.substring(endIndex + endTag.length)).trim();
+
+    try {
+      let cleanedJsonStr = jsonStr;
+      if (cleanedJsonStr.startsWith("```")) {
+        cleanedJsonStr = cleanedJsonStr.replace(/^```[a-zA-Z]*\n/, "").replace(/\n```$/, "").trim();
+      }
+
+      const parsed = JSON.parse(cleanedJsonStr);
+      if (parsed) {
+        const key = "familyTripPlanner:ai_data:" + getChecklistKey();
+        localStorage.setItem(key, JSON.stringify(parsed));
+      }
+    } catch (e) {
+      console.warn("Failed to parse structured AI data JSON:", e, jsonStr);
+    }
+
+    return cleanText;
+  }
+
+  return text;
+}
+
 function showAiResult(text) {
-  const cleanText = String(text || "").trim();
-  aiOutput.textContent = cleanText;
+  const cleanText = parseAndSaveStructuredAiData(text);
+  const formattedText = cleanText.trim();
+  aiOutput.textContent = formattedText;
   aiOutput.classList.add("has-result");
-  aiResultModalText.textContent = cleanText;
-  openAiResultBtn.hidden = !cleanText;
+  aiResultModalText.textContent = formattedText;
+  openAiResultBtn.hidden = !formattedText;
   aiResultModal.hidden = false;
 }
 
@@ -2537,11 +2636,23 @@ function renderTimeline(plan) {
 
 function renderLodging(plan) {
   const base = plan.state.nightlyBudget * plan.state.rooms;
-  const options = [
-    { title: "Family value", price: base * 0.86, meta: "rating bun, parcare, anulare gratuită", tags: ["preț bun", "mic dejun", "familie"] },
-    { title: "Aproape de plajă/centru", price: base * 1.08, meta: "mai puțin condus local, seri mai simple", tags: ["distanță mică", "confort", "copii"] },
-    { title: "Apartament cu bucătărie", price: base * 0.98, meta: "reduce costul la mese și ajută cu programul copiilor", tags: ["bucătărie", "spațiu", "sejur lung"] }
-  ];
+  const aiData = getSavedAiData();
+  
+  let options = [];
+  if (aiData && aiData.lodgings && aiData.lodgings.length) {
+    options = aiData.lodgings.map(opt => ({
+      title: opt.title || "Opțiune cazare",
+      price: opt.price ? Number(opt.price) : base,
+      meta: opt.meta || "",
+      tags: Array.isArray(opt.tags) ? opt.tags : []
+    }));
+  } else {
+    options = [
+      { title: "Family value", price: base * 0.86, meta: "rating bun, parcare, anulare gratuită", tags: ["preț bun", "mic dejun", "familie"] },
+      { title: "Aproape de plajă/centru", price: base * 1.08, meta: "mai puțin condus local, seri mai simple", tags: ["distanță mică", "confort", "copii"] },
+      { title: "Apartament cu bucătărie", price: base * 0.98, meta: "reduce costul la mese și ajută cu programul copiilor", tags: ["bucătărie", "spațiu", "sejur lung"] }
+    ];
+  }
 
   document.querySelector("#lodgingOptions").innerHTML = options.map((option) => `
     <article class="lodging-card">
@@ -2561,20 +2672,40 @@ function renderLodging(plan) {
 }
 
 function renderStops(plan) {
-  const stops = plan.state.distanceKm > 0
-    ? [
-      ["Pauză scurtă", `${Math.round(plan.state.distanceKm * 0.25)} km`, "cafea, toaletă, dezmorțire"],
-      ["Pauză lungă", `${Math.round(plan.state.distanceKm * 0.5)} km`, "masă și timp pentru copii"],
-      ["Ultima oprire", `${Math.round(plan.state.distanceKm * 0.78)} km`, "realimentare și verificare check-in"]
-    ]
-    : [["După calcul", "-", "opriri generate în funcție de km"]];
-
-  const attractions = [
-    ["Orașe la jumătatea drumului", "caută variante la 45-60% din traseu"],
-    ["Parcuri sau faleze", "pauze mai bune decât benzinăriile simple"],
-    ["Centru vechi / promenadă", "bun pentru masă și plimbare scurtă"],
-    ["Locuri acoperite", "variantă de rezervă pe ploaie"]
-  ];
+  const aiData = getSavedAiData();
+  
+  let stops = [];
+  let attractions = [];
+  
+  if (aiData && aiData.stops && aiData.stops.length) {
+    stops = aiData.stops.map(stop => [
+      stop.title || "Oprire pe traseu",
+      stop.distance || "-",
+      stop.description || ""
+    ]);
+  } else {
+    stops = plan.state.distanceKm > 0
+      ? [
+        ["Pauză scurtă", `${Math.round(plan.state.distanceKm * 0.25)} km`, "cafea, toaletă, dezmorțire"],
+        ["Pauză lungă", `${Math.round(plan.state.distanceKm * 0.5)} km`, "masă și timp pentru copii"],
+        ["Ultima oprire", `${Math.round(plan.state.distanceKm * 0.78)} km`, "realimentare și verificare check-in"]
+      ]
+      : [["După calcul", "-", "opriri generate în funcție de km"]];
+  }
+  
+  if (aiData && aiData.attractions && aiData.attractions.length) {
+    attractions = aiData.attractions.map(attr => [
+      attr.title || "Atracție",
+      attr.description || ""
+    ]);
+  } else {
+    attractions = [
+      ["Orașe la jumătatea drumului", "caută variante la 45-60% din traseu"],
+      ["Parcuri sau faleze", "pauze mai bune decât benzinăriile simple"],
+      ["Centru vechi / promenadă", "bun pentru masă și plimbare scurtă"],
+      ["Locuri acoperite", "variantă de rezervă pe ploaie"]
+    ];
+  }
 
   document.querySelector("#stopList").innerHTML = stops.map((stop) => `
     <article class="plain-item">
@@ -2692,8 +2823,24 @@ async function runAiSuggestions() {
   aiOutput.scrollIntoView({ behavior: "smooth", block: "center" });
   runAiBtn.disabled = true;
   try {
+    const systemPrompt = `
+Important: La finalul răspunsului tău (după recomandările text detaliate), adaugă un bloc JSON valid cuprins EXACT între tagurile speciale <structured_data> și </structured_data> (fără alte prefixe markdown gen \`\`\`json sau alte texte în interiorul tagurilor). Acesta trebuie să conțină date structurate conform schemei de mai jos:
+{
+  "stops": [
+    {"title": "Pauză recomandată la...", "distance": "km de la plecare, ex: 150 km", "description": "ce pot face copiii sau utilitatea opririi (toaletă, masă etc.)"}
+  ],
+  "attractions": [
+    {"title": "Nume Atractie/Loc", "description": "activități recomandate în acea zonă"}
+  ],
+  "lodgings": [
+    {"title": "Nume opțiune / Tip cazare / Zonă", "price": pret_estimat_per_noapte_in_eur, "meta": "parcare gratuită, rating bun, mic dejun etc.", "tags": ["tag1", "tag2"]}
+  ]
+}
+Te rog completează datele de mai sus cu opțiuni reale adaptate exact la traseul generat. Încearcă să oferi 3-4 opriri recomandate pe parcursul distanței totale, 3-4 atracții de vizitat și 3 opțiuni de cazare.
+`;
+    const augmentedPrompt = `${prompt}\n\n${systemPrompt}`;
     const payload = {
-      prompt,
+      prompt: augmentedPrompt,
       context: buildAiContext(plan),
       model
     };
@@ -2711,14 +2858,14 @@ async function runAiSuggestions() {
           {
             parts: [
               {
-                text: `${prompt}\n\nContext traseu:\n${buildAiContext(plan)}`
+                text: `${augmentedPrompt}\n\nContext traseu:\n${buildAiContext(plan)}`
               }
             ]
           }
         ],
         generationConfig: {
           temperature: 0.6,
-          maxOutputTokens: 1600
+          maxOutputTokens: 1650
         }
       })
     });
