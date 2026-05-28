@@ -1274,8 +1274,13 @@ body[data-theme="dark"] .leaflet-tile {
   align-items: center;
   width: 100%;
 }
-.scenario-row select {
+.scenario-row select,
+.scenario-row input {
   flex: 1;
+  min-width: 0;
+}
+.scenario-row button {
+  flex-shrink: 0;
 }
 
 /* Pre-trip Checklist Panel Styling */
