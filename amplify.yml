@@ -1,0 +1,14 @@
+version: 1
+frontend:
+  phases:
+    build:
+      commands:
+        - echo "Static app in subfolder - no build step"
+  artifacts:
+    baseDirectory: vacation-planner
+    files:
+      - index.html
+      - styles.css
+      - app.js
+  cache:
+    paths: []
