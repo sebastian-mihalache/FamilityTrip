@@ -295,6 +295,7 @@ let markerLayer = null;
 let routeVariantCache = new Map();
 let language = defaults.language;
 let theme = defaults.theme;
+let lastWeatherCoords = { lat: null, lon: null };
 
 const fields = {
   from: document.querySelector("#from"),
@@ -348,6 +349,16 @@ const aiResultModal = document.querySelector("#aiResultModal");
 const aiResultModalText = document.querySelector("#aiResultModalText");
 const closeAiResultBtn = document.querySelector("#closeAiResultBtn");
 const openAiResultBtn = document.querySelector("#openAiResultBtn");
+const savedScenariosSelect = document.querySelector("#savedScenariosSelect");
+const deleteScenarioBtn = document.querySelector("#deleteScenarioBtn");
+const newScenarioName = document.querySelector("#newScenarioName");
+const saveScenarioBtn = document.querySelector("#saveScenarioBtn");
+const checklistPanel = document.querySelector("#checklistPanel");
+const checklistBody = document.querySelector("#checklistBody");
+const checklistTitleRow = document.querySelector("#checklistTitleRow");
+const checklistToggleArrow = document.querySelector("#checklistToggleArrow");
+const printPdfBtn = document.querySelector("#printPdfBtn");
+const destinationWeather = document.querySelector("#destinationWeather");
 
 const uiText = {
   ro: {
@@ -444,7 +455,24 @@ const uiText = {
     partialRouting: "Rutare parțială",
     ferryShort: "bac",
     countriesFromRoute: "țări din rută",
-    countriesEstimated: "țări estimate"
+    countriesEstimated: "țări estimate",
+    savedScenarios: "Scenarii salvate",
+    chooseScenario: "Alege un scenariu...",
+    save: "Salvează",
+    delete: "Șterge",
+    scenarioNamePlaceholder: "Nume (ex: Grecia 2026)",
+    checklistTitle: "Pregătiri și Checklist Traseu",
+    checkVignette: "Cumpără vignetă/rovinietă pentru {country} ({details})",
+    checkPassport: "Verifică valabilitatea pașaportului (călătorie în afara UE / tranzit în {country})",
+    checkGreenCard: "Verifică asigurarea cărții verzi a mașinii pentru {country}",
+    checkCarOil: "Verifică nivelul uleiului de motor și al lichidului de răcire",
+    checkCarTires: "Verifică presiunea pneurilor și starea anvelopei de rezervă",
+    checkCarKit: "Asigură-te că ai trusa medicală, stingătorul și triunghiurile reflectorizante",
+    checkKidsSnacks: "Pregătește apă și gustări suficiente pentru drum",
+    checkKidsEntertainment: "Pregătește jocuri și tablete/activități pentru copii",
+    weatherLoading: "Se încarcă vremea...",
+    weatherTemp: "Vreme: {temp}°C, {desc}",
+    printPdf: "Printează PDF"
   },
   en: {
     personalPlan: "Personal plan",
@@ -499,29 +527,29 @@ const uiText = {
     transport: "Transport",
     roadCosts: "Road costs",
     fuelCountriesTaxes: "Fuel, countries and tolls",
-    aiIdeas: "Places to see and route ideas",
-    aiRequest: "AI request",
-    askAi: "Ask AI",
-    dayPlan: "Day plan",
+    aiIdeas: "Sightseeing and route ideas",
+    aiRequest: "AI prompt",
+    askAi: "Get AI suggestions",
+    dayPlan: "Day-by-day plan",
     itinerary: "Itinerary",
-    stays: "Stays",
-    candidateOptions: "Candidate options",
-    enRoute: "On the route",
+    stays: "Lodging",
+    candidateOptions: "Candidate stays",
+    enRoute: "En route",
     goodStops: "Good stops",
     placesToSee: "Places to see",
-    aiGenerated: "Generated suggestions",
+    aiGenerated: "AI suggestions",
     viewResult: "View result",
     close: "Close",
     nightMode: "Night mode",
     lightMode: "Light mode",
-    fuelOnlineStatusDefault: "Online prices apply to the countries detected on the route.",
-    tollStatusDefault: "Tolls are estimated by country: vignette, road tax or €/km where applicable.",
-    aiPromptDefault: "Suggest places to see on the route, good stops with children, what is worth visiting at the destination and what to avoid. I want practical day-by-day recommendations with approximate distances.",
-    aiOutputDefault: "Server endpoint active. You can ask for suggestions without an API key in the page after Amplify rewrites /api/ai-suggestions to Lambda.",
-    fromPlaceholder: "e.g. Craiova, Romania",
-    toPlaceholder: "e.g. Bari, Italy",
-    waypointPlaceholder: "e.g. Durrës, Albania",
-    routePathPlaceholder: "Craiova -> Timisoara -> Szeged -> Ljubljana -> Bari",
+    fuelOnlineStatusDefault: "Online prices apply to countries detected on route.",
+    tollStatusDefault: "Tolls are estimated per country: vignette or €/km where applicable.",
+    aiPromptDefault: "Suggest places to see along the route, good stops for kids, what is worth seeing at destination and what to avoid. Provide practical recommendations, day-by-day, with approximate distances.",
+    aiOutputDefault: "Server endpoint active. You can request suggestions without an API key in the browser after Amplify rewrite redirects /api/ai-suggestions to Lambda.",
+    fromPlaceholder: "e.g. Bucharest, Romania",
+    toPlaceholder: "e.g. Athens, Greece",
+    waypointPlaceholder: "e.g. Sofia, Bulgaria",
+    routePathPlaceholder: "Bucharest -> Sofia -> Thessaloniki -> Athens",
     childAgesPlaceholder: "e.g. 4, 9",
     gasoline: "Gasoline",
     diesel: "Diesel",
@@ -533,14 +561,31 @@ const uiText = {
     perPerson: "person",
     nights: "nights",
     people: "people",
-    totalKm: "km total",
+    totalKm: "total km",
     calculateRoute: "Calculate route",
     noRoute: "No car route",
     liveRouting: "Live routing",
     partialRouting: "Partial routing",
     ferryShort: "ferry",
-    countriesFromRoute: "countries from route",
-    countriesEstimated: "estimated countries"
+    countriesFromRoute: "countries on route",
+    countriesEstimated: "estimated countries",
+    savedScenarios: "Saved scenarios",
+    chooseScenario: "Choose a scenario...",
+    save: "Save",
+    delete: "Delete",
+    scenarioNamePlaceholder: "Name (e.g. Greece 2026)",
+    checklistTitle: "Route Preparation Checklist",
+    checkVignette: "Buy vignette for {country} ({details})",
+    checkPassport: "Check passport validity (travel outside EU / transit in {country})",
+    checkGreenCard: "Check car Green Card insurance validity for {country}",
+    checkCarOil: "Check motor oil and coolant levels",
+    checkCarTires: "Check tire pressure and the spare wheel",
+    checkCarKit: "Ensure you have the first aid kit, fire extinguisher, and warning triangles",
+    checkKidsSnacks: "Prepare sufficient water and road snacks",
+    checkKidsEntertainment: "Prepare games and activities/tablets for children",
+    weatherLoading: "Loading weather...",
+    weatherTemp: "Weather: {temp}°C, {desc}",
+    printPdf: "Print PDF"
   }
 };
 
@@ -668,6 +713,14 @@ function applyLanguage(nextLanguage = language, options = {}) {
   setOwnText("#openAiResultBtn", "viewResult");
   setText("#modeComfort", "comfort");
   setText("#modeFast", "fast");
+
+  // New translations
+  setText("#lblSavedScenarios", "savedScenarios");
+  setText("#optChooseScenario", "chooseScenario");
+  setOwnText("#saveScenarioBtn", "save");
+  setPlaceholder("#newScenarioName", "scenarioNamePlaceholder");
+  setText("#lblChecklistTitle", "checklistTitle");
+  setOwnText("#printPdfBtn", "printPdf");
 
   setPlaceholder("#from", "fromPlaceholder");
   setPlaceholder("#to", "toPlaceholder");
@@ -2259,6 +2312,19 @@ function render() {
   renderTimeline(plan);
   renderLodging(plan);
   renderStops(plan);
+
+  // Update Checklist
+  renderChecklist();
+
+  // Weather Check for destination
+  const toPlace = routeMeta.toPlace;
+  if (toPlace && (toPlace.lat !== lastWeatherCoords.lat || toPlace.lon !== lastWeatherCoords.lon)) {
+    lastWeatherCoords = { lat: toPlace.lat, lon: toPlace.lon };
+    fetchDestinationWeather(toPlace);
+  } else if (!toPlace) {
+    destinationWeather.style.display = "none";
+    lastWeatherCoords = { lat: null, lon: null };
+  }
 }
 
 function shortPlace(place) {
@@ -2698,6 +2764,632 @@ function showToast(message) {
   showToast.timeout = window.setTimeout(() => toast.classList.remove("visible"), 2400);
 }
 
+// ==========================================
+// SCENARIO MANAGER
+// ==========================================
+const SCENARIOS_KEY = "familyTripPlanner:saved_scenarios";
+
+function getSavedScenarios() {
+  try {
+    return JSON.parse(localStorage.getItem(SCENARIOS_KEY) || "[]");
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveSavedScenarios(list) {
+  localStorage.setItem(SCENARIOS_KEY, JSON.stringify(list));
+}
+
+function loadSavedScenariosList() {
+  if (!savedScenariosSelect) return;
+  const list = getSavedScenarios();
+  
+  while (savedScenariosSelect.options.length > 1) {
+    savedScenariosSelect.remove(1);
+  }
+  
+  list.forEach(scenario => {
+    const option = document.createElement("option");
+    option.value = scenario.id;
+    option.textContent = scenario.name;
+    savedScenariosSelect.appendChild(option);
+  });
+  
+  savedScenariosSelect.value = "";
+  if (deleteScenarioBtn) deleteScenarioBtn.disabled = true;
+}
+
+function handleSaveScenario() {
+  const name = newScenarioName.value.trim();
+  if (!name) {
+    showToast(language === "en" ? "Please enter a name for the scenario." : "Te rog introdu un nume pentru scenariu.");
+    return;
+  }
+  
+  const currentPlan = lastPlan || calculatePlan();
+  const state = currentPlan.state;
+  
+  const list = getSavedScenarios();
+  const existingIndex = list.findIndex(s => normalize(s.name) === normalize(name));
+  
+  const id = existingIndex >= 0 ? list[existingIndex].id : "scen_" + Date.now();
+  const newScenario = {
+    id,
+    name,
+    timestamp: Date.now(),
+    state
+  };
+  
+  if (existingIndex >= 0) {
+    list[existingIndex] = newScenario;
+    showToast(language === "en" ? `Scenario "${name}" updated.` : `Scenariul "${name}" a fost actualizat.`);
+  } else {
+    list.push(newScenario);
+    showToast(language === "en" ? `Scenario "${name}" saved.` : `Scenariul "${name}" a fost salvat.`);
+  }
+  
+  saveSavedScenarios(list);
+  newScenarioName.value = "";
+  loadSavedScenariosList();
+  
+  savedScenariosSelect.value = id;
+  if (deleteScenarioBtn) deleteScenarioBtn.disabled = false;
+}
+
+function handleDeleteScenario() {
+  const id = savedScenariosSelect.value;
+  if (!id) return;
+  
+  let list = getSavedScenarios();
+  const scenario = list.find(s => s.id === id);
+  if (!scenario) return;
+  
+  list = list.filter(s => s.id !== id);
+  saveSavedScenarios(list);
+  
+  showToast(language === "en" ? `Scenario deleted.` : `Scenariul a fost șters.`);
+  loadSavedScenariosList();
+}
+
+function handleSelectScenario() {
+  const id = savedScenariosSelect.value;
+  if (!id) {
+    if (deleteScenarioBtn) deleteScenarioBtn.disabled = true;
+    return;
+  }
+  
+  if (deleteScenarioBtn) deleteScenarioBtn.disabled = false;
+  
+  const list = getSavedScenarios();
+  const scenario = list.find(s => s.id === id);
+  if (!scenario) return;
+  
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(scenario.state));
+  loadDefaults();
+  render();
+  
+  showToast(language === "en" ? `Scenario "${scenario.name}" loaded.` : `Scenariul "${scenario.name}" a fost încărcat.`);
+}
+
+// ==========================================
+// PRE-TRIP CHECKLIST MANAGER
+// ==========================================
+const CHECKLIST_PREFIX = "familyTripPlanner:checklist:";
+
+function getChecklistKey() {
+  const selectVal = savedScenariosSelect ? savedScenariosSelect.value : "";
+  if (selectVal) return "scen_" + selectVal;
+  
+  const from = fields.from.value.trim();
+  const to = fields.to.value.trim();
+  return `route_${normalize(from)}_${normalize(to)}`;
+}
+
+// Ensure checklist cache does not grow infinitely
+function getCheckedItems() {
+  const key = CHECKLIST_PREFIX + getChecklistKey();
+  try {
+    return JSON.parse(localStorage.getItem(key) || "[]");
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveCheckedItems(items) {
+  const key = CHECKLIST_PREFIX + getChecklistKey();
+  localStorage.setItem(key, JSON.stringify(items));
+}
+
+function renderChecklist() {
+  if (!checklistBody) return;
+  const zones = readRouteZones();
+  const checkedItems = getCheckedItems();
+  
+  let items = [];
+  
+  // 1. CAR GENERALS (always visible)
+  items.push({
+    id: "car_oil",
+    text: t("checkCarOil"),
+    category: "car"
+  });
+  items.push({
+    id: "car_tires",
+    text: t("checkCarTires"),
+    category: "car"
+  });
+  items.push({
+    id: "car_kit",
+    text: t("checkCarKit"),
+    category: "car"
+  });
+  
+  // 2. KIDS GENERALS
+  const kidsCount = number(fields.children.value, 0);
+  if (kidsCount > 0) {
+    items.push({
+      id: "kids_snacks",
+      text: t("checkKidsSnacks"),
+      category: "kids"
+    });
+    items.push({
+      id: "kids_entertainment",
+      text: t("checkKidsEntertainment"),
+      category: "kids"
+    });
+  }
+  
+  // 3. TRANSIT COUNTRY VIGNETTES & BORDER CHECKS
+  const vignetteCountries = {
+    RO: "rovinietă",
+    BG: "vignetă electronică",
+    HU: "e-vignetă (Matrica)",
+    AT: "vignetă (clasică sau digitală)",
+    SI: "e-vignetă",
+    SK: "e-vignetă",
+    CZ: "e-vignetă"
+  };
+  
+  const borderCountries = {
+    RS: "Serbia",
+    MK: "Macedonia de Nord",
+    AL: "Albania",
+    XK: "Kosovo",
+    ME: "Muntenegru",
+    BA: "Bosnia și Herțegovina",
+    TR: "Turcia",
+    GB: "Regatul Unit",
+    US: "Statele Unite"
+  };
+  
+  zones.forEach(zone => {
+    const code = zone.code.toUpperCase();
+    
+    // Vignette checks
+    if (vignetteCountries[code]) {
+      items.push({
+        id: `vig_${code}`,
+        text: t("checkVignette").replace("{country}", zone.name).replace("{details}", vignetteCountries[code]),
+        category: "tolls"
+      });
+    } else if (code !== "DEFAULT") {
+      items.push({
+        id: `vig_${code}`,
+        text: language === "en" 
+          ? `Check toll stations and highway payment options (cash/card) for ${zone.name}` 
+          : `Verifică stațiile de taxare și plata autostrăzii (cash/card) pentru ${zone.name}`,
+        category: "tolls"
+      });
+    }
+    
+    // Border checks (non-EU)
+    if (borderCountries[code]) {
+      items.push({
+        id: `passport_${code}`,
+        text: t("checkPassport").replace("{country}", zone.name),
+        category: "documents"
+      });
+      items.push({
+        id: `greencard_${code}`,
+        text: t("checkGreenCard").replace("{country}", zone.name),
+        category: "documents"
+      });
+    }
+  });
+  
+  if (!items.length) {
+    checklistBody.innerHTML = `<div style="text-align: center; color: var(--muted); font-size: 0.88rem; padding: 10px 0;">
+      ${language === "en" ? "Checklist will appear once a route is calculated." : "Checklist-ul va apărea după calcularea rutei."}
+    </div>`;
+    return;
+  }
+  
+  checklistBody.innerHTML = items.map(item => {
+    const isChecked = checkedItems.includes(item.id);
+    return `
+      <div class="checklist-item ${isChecked ? "checked" : ""}" data-item-id="${item.id}">
+        <input type="checkbox" id="chk_${item.id}" ${isChecked ? "checked" : ""} />
+        <label for="chk_${item.id}" style="display: flex; flex: 1; align-items: flex-start; cursor: pointer;">
+          <span>${item.text}</span>
+          <span class="tag">${item.category}</span>
+        </label>
+      </div>
+    `;
+  }).join("");
+}
+
+function handleChecklistClick(event) {
+  const checkbox = event.target.closest('input[type="checkbox"]');
+  if (!checkbox) return;
+  
+  const itemRow = checkbox.closest('.checklist-item');
+  if (!itemRow) return;
+  
+  const itemId = itemRow.dataset.itemId;
+  let checked = getCheckedItems();
+  
+  if (checkbox.checked) {
+    itemRow.classList.add('checked');
+    if (!checked.includes(itemId)) checked.push(itemId);
+  } else {
+    itemRow.classList.remove('checked');
+    checked = checked.filter(id => id !== itemId);
+  }
+  
+  saveCheckedItems(checked);
+}
+
+function toggleChecklistCollapse() {
+  if (!checklistBody) return;
+  const isHidden = checklistBody.classList.toggle("hidden");
+  if (checklistToggleArrow) {
+    checklistToggleArrow.style.transform = isHidden ? "rotate(-90deg)" : "rotate(0deg)";
+  }
+}
+
+// ==========================================
+// WEATHER SERVICE (OPEN-METEO)
+// ==========================================
+async function fetchDestinationWeather(toPlace) {
+  if (!destinationWeather) return;
+  if (!toPlace || !toPlace.lat || !toPlace.lon) {
+    destinationWeather.style.display = "none";
+    return;
+  }
+  
+  destinationWeather.style.display = "inline-flex";
+  destinationWeather.classList.add("loading");
+  destinationWeather.textContent = t("weatherLoading");
+  
+  try {
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${toPlace.lat}&longitude=${toPlace.lon}&current_weather=true`);
+    if (!response.ok) throw new Error("Weather API error");
+    
+    const data = await response.json();
+    const current = data.current_weather;
+    if (current) {
+      const temp = Math.round(current.temperature);
+      const code = current.weathercode;
+      const desc = getWeatherDescription(code);
+      
+      destinationWeather.classList.remove("loading");
+      destinationWeather.innerHTML = `
+        <svg viewBox="0 0 24 24" style="stroke: var(--amber); fill: none; width: 16px; height: 16px; margin-right: 4px;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <span>${temp}°C, ${desc}</span>
+      `;
+    }
+  } catch (error) {
+    console.error("Failed to load weather:", error);
+    destinationWeather.style.display = "none";
+  }
+}
+
+function getWeatherDescription(code) {
+  const weatherMap = {
+    0: language === "en" ? "Clear" : "Senin",
+    1: language === "en" ? "Mostly clear" : "Majoritar senin",
+    2: language === "en" ? "Partly cloudy" : "Parțial noros",
+    3: language === "en" ? "Cloudy" : "Noros",
+    45: language === "en" ? "Fog" : "Ceață",
+    48: language === "en" ? "Depositing rime fog" : "Ceață depusă",
+    51: language === "en" ? "Light drizzle" : "Boabă de ploaie fină",
+    53: language === "en" ? "Moderate drizzle" : "Ploaie slabă",
+    55: language === "en" ? "Dense drizzle" : "Ploaie deasă",
+    61: language === "en" ? "Slight rain" : "Averse slabe",
+    63: language === "en" ? "Moderate rain" : "Ploaie",
+    65: language === "en" ? "Heavy rain" : "Averse torențiale",
+    71: language === "en" ? "Slight snow" : "Ninsori slabe",
+    73: language === "en" ? "Moderate snow" : "Ninsoare",
+    75: language === "en" ? "Heavy snow" : "Viscol",
+    77: language === "en" ? "Snow grains" : "Măzăriche",
+    80: language === "en" ? "Slight rain showers" : "Ploaie trecătoare",
+    81: language === "en" ? "Moderate rain showers" : "Averse moderate",
+    82: language === "en" ? "Violent rain showers" : "Averse puternice",
+    85: language === "en" ? "Slight snow showers" : "Averse slabe de ninsoare",
+    86: language === "en" ? "Heavy snow showers" : "Averse grele de ninsoare",
+    95: language === "en" ? "Thunderstorm" : "Furtună",
+    96: language === "en" ? "Thunderstorm with slight hail" : "Furtună cu grindină",
+    99: language === "en" ? "Thunderstorm with heavy hail" : "Furtună puternică"
+  };
+  return weatherMap[code] || (language === "en" ? "Sunny" : "Frumos");
+}
+
+// ==========================================
+// PRINT / PDF EXPORTER
+// ==========================================
+function handlePrintPdf() {
+  if (!lastPlan) render();
+  const plan = lastPlan;
+  
+  const title = plan.state.from && plan.state.to
+    ? `${shortPlace(plan.state.from)} → ${shortPlace(plan.state.to)}`
+    : (language === "en" ? "Travel Plan" : "Plan de călătorie");
+    
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    showToast(language === "en" ? "Pop-up blocker prevented opening print view." : "Pop-up blocker-ul a blocat deschiderea paginii de print.");
+    return;
+  }
+  
+  const currentLanguage = language;
+  
+  // Format timelines
+  const timelineHtml = Array.from(document.querySelectorAll("#timeline .timeline-item")).map(item => {
+    const badge = item.querySelector(".timeline-badge")?.textContent || "";
+    const name = item.querySelector(".timeline-content strong")?.textContent || "";
+    const detail = item.querySelector(".timeline-content small")?.textContent || "";
+    const desc = item.querySelector(".timeline-desc")?.innerHTML || "";
+    return `
+      <div class="print-timeline-item">
+        <div class="print-badge">${badge}</div>
+        <div class="print-timeline-content">
+          <strong>${name}</strong> <span class="print-detail">${detail}</span>
+          <div class="print-desc">${desc}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+  
+  // Format checklist
+  const checkedItems = getCheckedItems();
+  const checklistHtml = Array.from(document.querySelectorAll(".checklist-item")).map(item => {
+    const text = item.querySelector("span")?.textContent || "";
+    const category = item.querySelector(".tag")?.textContent || "";
+    const isChecked = checkedItems.includes(item.dataset.itemId);
+    return `
+      <div class="print-checklist-item">
+        <span class="print-checkbox">${isChecked ? "&#9745;" : "&#9744;"}</span>
+        <span class="print-checklist-text">${text}</span>
+        <span class="print-checklist-category">(${category})</span>
+      </div>
+    `;
+  }).join("");
+  
+  // Format cost breakdown
+  const breakdownHtml = Array.from(document.querySelectorAll("#costBreakdown .breakdown-row")).map(row => {
+    const country = row.querySelector("strong")?.textContent || "";
+    const kms = row.querySelector("span:nth-of-type(1)")?.textContent || "";
+    const fuel = row.querySelector("span:nth-of-type(2)")?.textContent || "";
+    const toll = row.querySelector("span:nth-of-type(3)")?.textContent || "";
+    return `
+      <tr>
+        <td><strong>${country}</strong></td>
+        <td>${kms}</td>
+        <td>${fuel}</td>
+        <td>${toll}</td>
+      </tr>
+    `;
+  }).join("");
+  
+  // AI Suggestions if any
+  const aiOutputText = aiOutput.textContent.trim();
+  const hasAi = aiOutput.classList.contains("has-result") && aiOutputText && aiOutputText !== t("aiOutputDefault");
+  const aiHtml = hasAi 
+    ? `<div class="print-section">
+         <h2>${t("aiIdeas")}</h2>
+         <div class="print-ai-text">${aiOutputText.replaceAll("\n", "<br>")}</div>
+       </div>`
+    : "";
+
+  const total = plan.recommended ? plan.recommended.price : plan.carTotal;
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="${currentLanguage}">
+    <head>
+      <meta charset="utf-8">
+      <title>${title}</title>
+      <style>
+        body {
+          font-family: Inter, system-ui, -apple-system, sans-serif;
+          color: #1f2937;
+          line-height: 1.5;
+          margin: 40px;
+          font-size: 14px;
+        }
+        h1 {
+          font-size: 24px;
+          margin-bottom: 5px;
+          border-bottom: 2px solid #0f766e;
+          padding-bottom: 10px;
+        }
+        h2 {
+          font-size: 18px;
+          color: #0f766e;
+          margin-top: 25px;
+          margin-bottom: 12px;
+          border-bottom: 1px solid #e5e7eb;
+          padding-bottom: 5px;
+        }
+        .header-meta {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 25px;
+          background: #f9fafb;
+          padding: 15px;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        }
+        .meta-group div {
+          margin-bottom: 4px;
+        }
+        .meta-group strong {
+          color: #111827;
+        }
+        .summary-box {
+          font-size: 16px;
+          background: #e6f4ea;
+          border: 1px solid #34a853;
+          padding: 15px;
+          border-radius: 6px;
+          margin-bottom: 25px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 25px;
+        }
+        th, td {
+          text-align: left;
+          padding: 10px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+          background: #f3f4f6;
+          font-weight: 600;
+        }
+        .print-timeline-item {
+          display: flex;
+          margin-bottom: 15px;
+          page-break-inside: avoid;
+        }
+        .print-badge {
+          font-weight: bold;
+          background: #e0f2fe;
+          color: #0369a1;
+          padding: 3px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          height: fit-content;
+          margin-right: 15px;
+          white-space: nowrap;
+        }
+        .print-timeline-content {
+          flex: 1;
+        }
+        .print-detail {
+          color: #6b7280;
+          font-size: 12px;
+          margin-left: 10px;
+        }
+        .print-desc {
+          margin-top: 5px;
+          color: #4b5563;
+        }
+        .print-checklist-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 0;
+          border-bottom: 1px dashed #e5e7eb;
+          page-break-inside: avoid;
+        }
+        .print-checkbox {
+          font-size: 18px;
+          font-family: monospace;
+          font-weight: bold;
+          color: #0f766e;
+        }
+        .print-checklist-text {
+          flex: 1;
+        }
+        .print-checklist-category {
+          color: #9ca3af;
+          font-size: 11px;
+          text-transform: uppercase;
+        }
+        .print-ai-text {
+          font-style: italic;
+          color: #374151;
+          background: #f9fafb;
+          padding: 15px;
+          border-radius: 6px;
+          border-left: 4px solid #0f766e;
+        }
+        @media print {
+          body {
+            margin: 20px;
+          }
+          button {
+            display: none;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>${title}</h1>
+      
+      <div class="header-meta">
+        <div class="meta-group">
+          <div><strong>${currentLanguage === "en" ? "Period" : "Perioada"}:</strong> ${plan.state.startDate} - ${plan.state.endDate} (${plan.nights} ${t("nights")})</div>
+          <div><strong>${currentLanguage === "en" ? "People" : "Persoane"}:</strong> ${plan.people}</div>
+          <div><strong>${currentLanguage === "en" ? "Route source" : "Sursă rută"}:</strong> ${plan.state.routeSource}</div>
+        </div>
+        <div class="meta-group" style="text-align: right;">
+          <div><strong>${currentLanguage === "en" ? "Total distance" : "Distanță totală"}:</strong> ${Math.round(plan.totalRouteKm)} km</div>
+          <div><strong>${currentLanguage === "en" ? "Vehicle type" : "Tip vehicul"}:</strong> ${fuelTypeLabel(plan.state.fuelType)}</div>
+          <div><strong>${currentLanguage === "en" ? "Accommodation nightly" : "Cazare noapte"}:</strong> €${plan.state.nightlyBudget} / ${t("rooms")}</div>
+        </div>
+      </div>
+      
+      <div class="summary-box">
+        <strong>${t("totalEstimate")}: ${euro(total)}</strong> (${euro(total / plan.people)} / ${t("perPerson")})
+        <div style="font-size: 12px; margin-top: 5px; color: #4b5563;">
+          ${t("fuel")}: ${euro(plan.fuelCost)} | ${t("lodging")}: ${euro(plan.lodgingCost)} | ${currentLanguage === "en" ? "Food" : "Mâncare"}: ${euro(plan.foodCost)} | ${currentLanguage === "en" ? "Transit & Vignettes" : "Taxe drum & ferry"}: ${euro(plan.roadCosts + (plan.state.ferry || 0))}
+        </div>
+      </div>
+
+      <div class="print-section">
+        <h2>${currentLanguage === "en" ? "Road Expenses by Country" : "Cheltuieli pe țări"}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>${currentLanguage === "en" ? "Country" : "Țară"}</th>
+              <th>${currentLanguage === "en" ? "Distance" : "Distanță"}</th>
+              <th>${t("fuel")}</th>
+              <th>${currentLanguage === "en" ? "Toll" : "Taxă"}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${breakdownHtml || `<tr><td colspan="4" style="text-align:center;">${currentLanguage === "en" ? "No breakdown available" : "Fără costuri detailate"}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="print-section">
+        <h2>${t("itinerary")}</h2>
+        ${timelineHtml || `<p>${currentLanguage === "en" ? "No itinerary details generated." : "Nu există detalii în itinerar."}</p>`}
+      </div>
+
+      <div class="print-section" style="page-break-before: always;">
+        <h2>${t("checklistTitle")}</h2>
+        ${checklistHtml || `<p>${currentLanguage === "en" ? "Checklist is empty." : "Checklist-ul este gol."}</p>`}
+      </div>
+
+      ${aiHtml}
+
+      <script>
+        window.onload = function() {
+          window.print();
+        }
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   render();
@@ -2872,6 +3564,25 @@ Object.values(fields).forEach((field) => {
     render.inputTimer = window.setTimeout(render, 220);
   });
 });
+
+// New feature event listeners
+if (savedScenariosSelect) savedScenariosSelect.addEventListener("change", handleSelectScenario);
+if (deleteScenarioBtn) deleteScenarioBtn.addEventListener("click", handleDeleteScenario);
+if (saveScenarioBtn) saveScenarioBtn.addEventListener("click", handleSaveScenario);
+if (newScenarioName) {
+  newScenarioName.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveScenario();
+    }
+  });
+}
+if (checklistBody) checklistBody.addEventListener("click", handleChecklistClick);
+if (checklistTitleRow) checklistTitleRow.addEventListener("click", toggleChecklistCollapse);
+if (printPdfBtn) printPdfBtn.addEventListener("click", handlePrintPdf);
+
+// Initialize Saved Scenarios dropdown
+loadSavedScenariosList();
 
 loadDefaults();
 render();
