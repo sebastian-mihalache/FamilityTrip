@@ -90,7 +90,7 @@ button:disabled {
   overflow: auto;
   border-right: 1px solid var(--line);
   background: rgba(251, 251, 247, 0.94);
-  padding: 24px;
+  padding: 24px 16px;
 }
 
 .brand-row,
@@ -1376,4 +1376,32 @@ body[data-theme="dark"] .leaflet-tile {
   opacity: 0.7;
   font-style: italic;
 }
+
+/* Sidebar Button Grid Adaptations (Prevents horizontal overflow) */
+.main-form-actions {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+.main-form-actions button {
+  width: 100%;
+  padding: 0 8px !important;
+  font-size: 0.8rem !important;
+}
+.main-form-actions .primary-button {
+  font-size: 0.88rem !important;
+}
+
+.compact-actions {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)) !important;
+  gap: 8px;
+  width: 100%;
+}
+.compact-actions button {
+  width: 100% !important;
+  flex: none !important;
+}
+
 
