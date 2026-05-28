@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>App vers1</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <svg aria-hidden="true" class="svg-sprite">
+      <symbol id="icon-car" viewBox="0 0 24 24">
+        <path d="M5 17h14l-1.3-5.2A4 4 0 0 0 13.8 9H10a4 4 0 0 0-3.9 2.8L5 17Z"></path>
+        <path d="M6 17v2m12-2v2M7 13h10M8 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"></path>
+      </symbol>
+      <symbol id="icon-plane" viewBox="0 0 24 24">
+        <path d="M3 11.5 21 4l-7.5 18-3-7.5L3 11.5Z"></path>
+        <path d="m21 4-10.5 10.5"></path>
+      </symbol>
+      <symbol id="icon-ship" viewBox="0 0 24 24">
+        <path d="M4 16 6 7h12l2 9"></path>
+        <path d="M8 7V4h8v3"></path>
+        <path d="M3 17c2 2 4 2 6 0 2 2 4 2 6 0 2 2 4 2 6 0"></path>
+        <path d="M6 20c2 1 4 1 6 0 2 1 4 1 6 0"></path>
+      </symbol>
+      <symbol id="icon-route" viewBox="0 0 24 24">
+        <path d="M6 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm12-8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
+        <path d="M6 13V9a4 4 0 0 1 4-4h5m3 6v4a4 4 0 0 1-4 4H9"></path>
+      </symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24">
+        <path d="M12 3v12"></path>
+        <path d="m7 10 5 5 5-5"></path>
+        <path d="M5 21h14"></path>
+      </symbol>
+      <symbol id="icon-fuel" viewBox="0 0 24 24">
+        <path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path>
+        <path d="M7 8h6"></path>
+        <path d="M16 8h2l2 3v7a2 2 0 0 1-2 2h-2"></path>
+        <path d="M4 21h12"></path>
+      </symbol>
+      <symbol id="icon-reset" viewBox="0 0 24 24">
+        <path d="M4 12a8 8 0 1 0 2.3-5.7"></path>
+        <path d="M4 4v6h6"></path>
+      </symbol>
+      <symbol id="icon-moon" viewBox="0 0 24 24">
+        <path d="M20 14.5A7.5 7.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"></path>
+      </symbol>
+      <symbol id="icon-sun" viewBox="0 0 24 24">
+        <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"></path>
+        <path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+      </symbol>
+    </svg>
+
+    <div class="app-shell">
+      <aside class="planner-panel" aria-label="Date concediu">
+        <div class="brand-row">
+          <div>
+            <p class="eyebrow">Plan personal</p>
+            <h1>App vers1</h1>
+          </div>
+          <div class="app-controls">
+            <div class="language-switch" role="group" aria-label="Language">
+              <button class="control-pill active" id="langRoBtn" type="button">RO</button>
+              <button class="control-pill" id="langEnBtn" type="button">EN</button>
+            </div>
+            <button class="icon-button theme-toggle" id="themeToggleBtn" type="button" aria-label="Night mode" title="Night mode">
+              <svg><use href="#icon-moon"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <form id="tripForm" class="planner-form">
+          <section class="form-section">
+            <div class="section-title">
+              <span>Traseu</span>
+              <button class="icon-button" id="resetBtn" type="button" aria-label="Resetează" title="Resetează">
+                <svg><use href="#icon-reset"></use></svg>
+              </button>
+            </div>
+            <div class="route-status" id="routeStatus">Rută necalculată</div>
+            <div id="routeVariants" class="route-variants" aria-label="Variante traseu"></div>
+            <div class="two-col">
+              <label>
+                Plecare
+                <input id="from" type="text" autocomplete="off" list="cityHints" placeholder="ex: Craiova, România" />
+              </label>
+              <label>
+                Destinație
+                <input id="to" type="text" autocomplete="off" list="cityHints" placeholder="ex: Bari, Italia" />
+              </label>
+            </div>
+            <datalist id="cityHints"></datalist>
+            <div class="two-col">
+              <label>
+                Data plecării
+                <input id="startDate" type="date" />
+              </label>
+              <label>
+                Data întoarcerii
+                <input id="endDate" type="date" />
+              </label>
+            </div>
+            <div class="two-col">
+              <label>
+                Km dus
+                <input id="distanceKm" type="number" min="30" step="10" />
+              </label>
+              <label>
+                Ore drum dus
+                <input id="driveHours" type="number" min="1" step="0.5" />
+              </label>
+            </div>
+            <div class="route-builder">
+              <div class="subsection-title">Puncte intermediare</div>
+              <div id="waypointList" class="chip-list" aria-label="Puncte intermediare"></div>
+              <div class="add-row">
+                <input id="waypointInput" type="text" autocomplete="off" list="cityHints" placeholder="ex: Durrës, Albania" />
+                <button class="secondary-button" id="addWaypointBtn" type="button">Adaugă</button>
+              </div>
+              <div class="route-path-box">
+                <label>
+                  Traseu complet
+                  <textarea id="routePathInput" rows="3" placeholder="Craiova -> Timișoara -> Szeged -> Ljubljana -> Bari"></textarea>
+                </label>
+                <button class="secondary-button full-button" id="applyRoutePathBtn" type="button">
+                  <svg><use href="#icon-route"></use></svg>
+                  Aplică puncte
+                </button>
+              </div>
+            </div>
+            <div class="route-builder">
+              <div class="subsection-title">Bac pe traseu</div>
+              <div id="ferryList" class="stack-list" aria-label="Segmente de bac"></div>
+              <button class="secondary-button full-button" id="addFerryBtn" type="button">
+                <svg><use href="#icon-ship"></use></svg>
+                Adaugă bac
+              </button>
+            </div>
+            <div class="actions-row compact-actions">
+              <button class="secondary-button" id="autoRouteBtn" type="button">
+                <svg><use href="#icon-route"></use></svg>
+                Calculează km
+              </button>
+              <button class="secondary-button" id="fuelTemplateBtn" type="button">
+                <svg><use href="#icon-download"></use></svg>
+                Date combustibil
+              </button>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="section-title">
+              <span>Familie și confort</span>
+            </div>
+            <div class="three-col">
+              <label>
+                Adulți
+                <input id="adults" type="number" min="1" max="8" step="1" />
+              </label>
+              <label>
+                Copii
+                <input id="children" type="number" min="0" max="8" step="1" />
+              </label>
+              <label>
+                Camere
+                <input id="rooms" type="number" min="1" max="4" step="1" />
+              </label>
+            </div>
+            <label>
+              Vârste copii
+              <input id="childAges" type="text" placeholder="ex: 4, 9" autocomplete="off" />
+            </label>
+            <div class="two-col">
+              <label>
+                Max ore condus/zi
+                <input id="maxDailyHours" type="number" min="3" max="12" step="0.5" />
+              </label>
+              <label>
+                Km locali
+                <input id="localKm" type="number" min="0" step="10" />
+              </label>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="section-title">
+              <span>Combustibil și taxe</span>
+            </div>
+            <label>
+              Tip combustibil
+              <select id="fuelType">
+                <option value="gasoline">Benzină</option>
+                <option value="diesel">Diesel</option>
+                <option value="lpg">GPL</option>
+                <option value="electric">Electric</option>
+              </select>
+            </label>
+            <div class="two-col">
+              <label>
+                <span id="fuelConsumptionLabel">Consum l/100 km</span>
+                <input id="fuelConsumption" type="number" min="2" max="20" step="0.1" />
+              </label>
+              <label>
+                <span id="fuelPriceLabel">Combustibil €/l</span>
+                <input id="fuelPrice" type="number" min="0.5" max="3" step="0.01" />
+              </label>
+            </div>
+            <div class="two-col">
+              <label>
+                Taxe drum dus €
+                <input id="tolls" type="number" min="0" step="5" />
+              </label>
+              <label>
+                Bac dus €
+                <input id="ferry" type="number" min="0" step="5" />
+              </label>
+            </div>
+            <div class="actions-row compact-actions">
+              <button class="secondary-button" id="refreshFuelBtn" type="button">
+                <svg><use href="#icon-fuel"></use></svg>
+                Prețuri online
+              </button>
+              <button class="secondary-button" id="refreshTollsBtn" type="button">
+                <svg><use href="#icon-route"></use></svg>
+                Taxe drum
+              </button>
+            </div>
+            <div class="fuel-online-status" id="fuelOnlineStatus">
+              Prețurile online se aplică pe țările detectate în traseu.
+            </div>
+            <div class="fuel-online-status" id="tollOnlineStatus">
+              Taxele sunt estimate pe țări: vignetă, rovinietă sau €/km unde se aplică.
+            </div>
+            <div class="zone-editor" id="routeZones" aria-label="Țări pe traseu"></div>
+          </section>
+
+          <section class="form-section">
+            <div class="section-title">
+              <span>Buget sejur</span>
+            </div>
+            <div class="two-col">
+              <label>
+                Cazare €/noapte/cameră
+                <input id="nightlyBudget" type="number" min="20" step="5" />
+              </label>
+              <label>
+                Mâncare €/zi/pers.
+                <input id="foodDaily" type="number" min="0" step="5" />
+              </label>
+            </div>
+            <label class="check-row">
+              <input id="roundTrip" type="checkbox" />
+              <span>Calculează dus-întors</span>
+            </label>
+          </section>
+
+          <div class="actions-row">
+            <button class="primary-button" type="submit">
+              <svg><use href="#icon-route"></use></svg>
+              Recalculează
+            </button>
+            <button class="secondary-button" id="exportBtn" type="button">
+              <svg><use href="#icon-download"></use></svg>
+              Export plan
+            </button>
+          </div>
+        </form>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Scenariu activ</p>
+            <h2 id="routeTitle">București → Thassos</h2>
+          </div>
+          <div class="topbar-meta" id="topbarMeta"></div>
+        </header>
+
+        <section class="summary-grid" aria-label="Rezumat costuri">
+          <article class="metric">
+            <span>Total estimat</span>
+            <strong id="totalEstimate">€0</strong>
+            <small id="perPersonEstimate">€0 / persoană</small>
+          </article>
+          <article class="metric">
+            <span>Combustibil</span>
+            <strong id="fuelEstimate">€0</strong>
+            <small id="fuelLiters">0 litri</small>
+          </article>
+          <article class="metric">
+            <span>Cazare</span>
+            <strong id="lodgingEstimate">€0</strong>
+            <small id="lodgingNights">0 nopți</small>
+          </article>
+          <article class="metric accent">
+            <span>Recomandare</span>
+            <strong id="bestMode">Auto</strong>
+            <small id="bestReason">Cel mai echilibrat</small>
+          </article>
+        </section>
+
+        <section class="main-grid">
+          <div class="map-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Hartă plan</p>
+                <h3 id="mapTitle">Ruta și opririle</h3>
+              </div>
+              <div class="segmented" role="group" aria-label="Mod traseu">
+                <button id="modeComfort" class="segment active" type="button">Confort</button>
+                <button id="modeFast" class="segment" type="button">Rapid</button>
+              </div>
+            </div>
+            <div id="routeMap" class="route-map" aria-label="Vizualizare traseu"></div>
+          </div>
+
+          <div class="decision-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Comparație</p>
+                <h3>Transport</h3>
+              </div>
+            </div>
+            <div id="transportOptions" class="transport-list"></div>
+          </div>
+        </section>
+
+        <section class="content-grid">
+          <div class="content-panel wide">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Costuri pe drum</p>
+                <h3>Combustibil, țări și taxe</h3>
+              </div>
+            </div>
+            <div id="costBreakdown" class="breakdown-grid"></div>
+          </div>
+
+          <div class="content-panel wide">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">AI planner</p>
+                <h3>Zone de văzut și idei pe traseu</h3>
+              </div>
+            </div>
+            <div class="ai-panel">
+              <input id="aiProvider" type="hidden" value="proxy" />
+              <input id="aiModel" type="hidden" value="gemini-2.5-flash" />
+              <input id="aiEndpoint" type="hidden" value="/api/ai-suggestions" />
+              <input id="aiKey" type="hidden" value="" />
+              <label>
+                Cerere info AI
+                <textarea id="aiPrompt" rows="4">Sugerează locuri de văzut pe traseu, opriri bune cu copii, ce merită în destinație și ce merită evitat. Vreau recomandări practice, pe zile, cu distanțe aproximative.</textarea>
+              </label>
+              <div class="actions-row compact-actions">
+                <button class="primary-button" id="runAiBtn" type="button">
+                  <svg><use href="#icon-route"></use></svg>
+                  Cere sugestii AI
+                </button>
+                <button class="secondary-button" id="openAiResultBtn" type="button" hidden>
+                  Vezi rezultat
+                </button>
+              </div>
+              <div id="aiOutput" class="ai-output">Endpoint server activ. Poți cere sugestii fără API key în pagină după ce rewrite-ul din Amplify trimite /api/ai-suggestions către Lambda.</div>
+            </div>
+          </div>
+
+          <div class="content-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Plan pe zile</p>
+                <h3>Itinerar</h3>
+              </div>
+            </div>
+            <div id="timeline" class="timeline"></div>
+          </div>
+
+          <div class="content-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Cazări</p>
+                <h3>Opțiuni candidate</h3>
+              </div>
+            </div>
+            <div id="lodgingOptions" class="lodging-list"></div>
+          </div>
+
+          <div class="content-panel wide">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Pe traseu</p>
+                <h3>Opriri și locuri de văzut</h3>
+              </div>
+            </div>
+            <div class="split-list">
+              <div>
+                <h4>Opriri bune</h4>
+                <div id="stopList" class="plain-list"></div>
+              </div>
+              <div>
+                <h4>Zone de văzut</h4>
+                <div id="attractionList" class="plain-list"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <footer class="site-footer">
+          <strong>App vers1</strong>
+          <span>Made by SebastiaM @msecur.ro. Toate drepturile rezervate. Utilizare permisă doar cu acordul autorului.</span>
+        </footer>
+      </main>
+    </div>
+
+    <div id="aiResultModal" class="ai-result-modal" hidden>
+      <div class="ai-result-dialog" role="dialog" aria-modal="true" aria-labelledby="aiResultTitle">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">AI planner</p>
+            <h3 id="aiResultTitle">Sugestii generate</h3>
+          </div>
+          <button class="icon-button" id="closeAiResultBtn" type="button" aria-label="Închide" title="Închide">×</button>
+        </div>
+        <div id="aiResultModalText" class="ai-result-text"></div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

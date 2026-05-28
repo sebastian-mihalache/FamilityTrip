@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+node_modules/
+dist/
+build/
+outputs/
+.env
+.env.*
+vacation-planner-amplify.zip

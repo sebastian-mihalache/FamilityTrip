@@ -1,0 +1,14 @@
+version: 1
+frontend:
+  phases:
+    build:
+      commands:
+        - echo "Static app - no build step"
+  artifacts:
+    baseDirectory: .
+    files:
+      - index.html
+      - styles.css
+      - app.js
+  cache:
+    paths: []

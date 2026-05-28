@@ -1,0 +1,32 @@
+[
+  {
+    "source": "/api/ai-suggestions",
+    "target": "https://YOUR_HTTP_API_ID.execute-api.eu-central-1.amazonaws.com/api/ai-suggestions",
+    "status": "200",
+    "condition": null
+  },
+  {
+    "source": "/api/ai-suggestions/",
+    "target": "https://YOUR_HTTP_API_ID.execute-api.eu-central-1.amazonaws.com/api/ai-suggestions",
+    "status": "200",
+    "condition": null
+  },
+  {
+    "source": "/api/fuel-prices",
+    "target": "https://YOUR_HTTP_API_ID.execute-api.eu-central-1.amazonaws.com/api/fuel-prices",
+    "status": "200",
+    "condition": null
+  },
+  {
+    "source": "/api/fuel-prices/",
+    "target": "https://YOUR_HTTP_API_ID.execute-api.eu-central-1.amazonaws.com/api/fuel-prices",
+    "status": "200",
+    "condition": null
+  },
+  {
+    "source": "</^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|webp)$)([^.]+$)/>",
+    "target": "/index.html",
+    "status": "200",
+    "condition": null
+  }
+]
