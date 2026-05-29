@@ -5,6 +5,9 @@ const corsHeaders = {
   "content-type": "application/json"
 };
 
+let cachedApiKey = null;
+let cachedSecretConfig = null;
+
 export const handler = async (event) => {
   if (event.requestContext?.http?.method === "OPTIONS" || event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers: corsHeaders, body: "" };
@@ -16,47 +19,202 @@ export const handler = async (event) => {
       return await handleFuelPrices(event);
     }
 
-    const apiKey = process.env.AI_PROVIDER_API_KEY || process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const body = JSON.parse(event.body || "{}");
+    const provider = normalizeProvider(body.provider || process.env.AI_PROVIDER || "gemini");
+    const config = await getAiProviderConfig(provider, body.model);
+    if (!config.apiKey) {
       return json(500, { error: "AI provider key is not configured." });
     }
 
-    const body = JSON.parse(event.body || "{}");
-    const model = body.model || process.env.AI_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash";
     const prompt = body.prompt || "";
     const context = body.context || "";
     const text = `${prompt}\n\nContext traseu:\n${context}`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text }] }],
-          generationConfig: {
-            temperature: 0.6,
-            maxOutputTokens: 1600
-          }
-        })
-      }
-    );
+    const result = await requestAiProvider({ ...config, text });
+    if (!result.ok) return json(result.status, { error: result.error });
 
-    const data = await response.json();
-    if (!response.ok) {
-      return json(response.status, { error: data.error?.message || "AI provider request failed." });
-    }
-
-    const output = data.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || "")
-      .join("\n")
-      .trim();
-
-    return json(200, { text: output || "" });
+    return json(200, { text: result.text || "" });
   } catch (error) {
     return json(500, { error: error.message || "AI proxy failed." });
   }
 };
+
+async function getAiProviderConfig(provider, modelFromBody) {
+  const secretConfig = await getAiProviderSecretConfig();
+  const selectedProvider = normalizeProvider(secretConfig.provider || provider);
+  const apiKey = getDirectApiKey(selectedProvider) || secretConfig.apiKey || "";
+  const model = modelFromBody || secretConfig.model || process.env.AI_MODEL || process.env.GEMINI_MODEL || defaultModel(selectedProvider);
+  return { provider: selectedProvider, model, apiKey };
+}
+
+function getDirectApiKey(provider) {
+  const providerEnvName = `${provider.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_API_KEY`;
+  return process.env.AI_PROVIDER_API_KEY || process.env[providerEnvName] || process.env.GEMINI_API_KEY || "";
+}
+
+async function getAiProviderSecretConfig() {
+  if (!process.env.AI_PROVIDER_SECRET_ARN) return {};
+  if (cachedSecretConfig) return cachedSecretConfig;
+  if (cachedApiKey) return { apiKey: cachedApiKey };
+
+  const { SecretsManagerClient, GetSecretValueCommand } = await import("@aws-sdk/client-secrets-manager");
+  const client = new SecretsManagerClient({});
+  const data = await client.send(new GetSecretValueCommand({ SecretId: process.env.AI_PROVIDER_SECRET_ARN }));
+  const secretValue = data.SecretString || (data.SecretBinary ? Buffer.from(data.SecretBinary).toString("utf8") : "");
+  cachedSecretConfig = parseSecretConfig(secretValue);
+  cachedApiKey = cachedSecretConfig.apiKey || "";
+  return cachedSecretConfig;
+}
+
+function parseSecretConfig(value) {
+  const text = String(value || "").trim();
+  if (!text) return {};
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === "object") {
+      return {
+        apiKey: parsed.apiKey || parsed.api_key || parsed.key || parsed.token || parsed.AI_PROVIDER_API_KEY || parsed.GEMINI_API_KEY || parsed.OPENAI_API_KEY || parsed.ANTHROPIC_API_KEY || parsed.OPENROUTER_API_KEY || "",
+        provider: parsed.provider || parsed.aiProvider || parsed.AI_PROVIDER || "",
+        model: parsed.model || parsed.aiModel || parsed.AI_MODEL || ""
+      };
+    }
+  } catch {
+    return { apiKey: text };
+  }
+  return { apiKey: text };
+}
+
+async function requestAiProvider({ provider, model, apiKey, text }) {
+  if (provider === "openai") return requestOpenAi({ model, apiKey, text });
+  if (provider === "anthropic") return requestAnthropic({ model, apiKey, text });
+  if (provider === "openrouter") return requestOpenRouter({ model, apiKey, text });
+  return requestGemini({ model, apiKey, text });
+}
+
+async function requestGemini({ model, apiKey, text }) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text }] }],
+        generationConfig: {
+          temperature: 0.6,
+          maxOutputTokens: 1600
+        }
+      })
+    }
+  );
+  const data = await readJson(response);
+  if (!response.ok) return providerError(response, data);
+  const output = data.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text || "")
+    .join("\n")
+    .trim();
+  return { ok: true, text: output || "" };
+}
+
+async function requestOpenAi({ model, apiKey, text }) {
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      input: text,
+      temperature: 0.6,
+      max_output_tokens: 1600
+    })
+  });
+  const data = await readJson(response);
+  if (!response.ok) return providerError(response, data);
+  const output = data.output_text || data.output
+    ?.flatMap((item) => item.content || [])
+    .map((item) => item.text || "")
+    .join("\n")
+    .trim();
+  return { ok: true, text: output || "" };
+}
+
+async function requestAnthropic({ model, apiKey, text }) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 1600,
+      temperature: 0.6,
+      messages: [{ role: "user", content: text }]
+    })
+  });
+  const data = await readJson(response);
+  if (!response.ok) return providerError(response, data);
+  const output = data.content
+    ?.map((item) => item.text || "")
+    .join("\n")
+    .trim();
+  return { ok: true, text: output || "" };
+}
+
+async function requestOpenRouter({ model, apiKey, text }) {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+      "x-title": "Family Trip Planner"
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: text }],
+      temperature: 0.6,
+      max_tokens: 1600
+    })
+  });
+  const data = await readJson(response);
+  if (!response.ok) return providerError(response, data);
+  const output = data.choices?.[0]?.message?.content || "";
+  return { ok: true, text: output.trim() };
+}
+
+async function readJson(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+}
+
+function providerError(response, data) {
+  return {
+    ok: false,
+    status: response.status,
+    error: data.error?.message || data.error?.error?.message || data.message || "AI provider request failed."
+  };
+}
+
+function normalizeProvider(value) {
+  const provider = String(value || "").trim().toLowerCase();
+  if (["openai", "anthropic", "openrouter", "gemini"].includes(provider)) return provider;
+  return "gemini";
+}
+
+function defaultModel(provider) {
+  if (provider === "openai") return "gpt-4.1-mini";
+  if (provider === "anthropic") return "claude-sonnet-4-20250514";
+  if (provider === "openrouter") return "google/gemini-2.5-flash";
+  return "gemini-2.5-flash";
+}
 
 async function handleFuelPrices(event) {
   const rawQuery = event.rawQueryString || "";

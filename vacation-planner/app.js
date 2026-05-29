@@ -2922,9 +2922,9 @@ Important: La finalul răspunsului tău (după recomandările text detaliate), a
     const augmentedPrompt = `${prompt}\n\n${systemPrompt}`;
     const payload = {
       prompt: augmentedPrompt,
-      context: buildAiContext(plan),
-      model
+      context: buildAiContext(plan)
     };
+    if (provider !== "proxy") payload.model = model;
     const response = provider === "proxy"
       ? await fetch(endpoint, {
         method: "POST",

@@ -28,7 +28,7 @@ Interfața oferă un tablou de bord premium, complet echipat cu hărți interact
 - **Taxe și Vignete:** Estimează automat costul de vignete (ex: RO, BG, HU, AT, SI, SK, CZ) sau cost per kilometru de autostradă (ex: IT, FR, GR, HR).
 
 ### 🤖 Sugestii AI Structurate și Dinamice
-- **Generare AI prin proxy securizat:** Endpointul `/api/ai-suggestions` rulează prin Lambda pe AWS, iar cheia providerului rămâne în backend, nu în browser sau Git.
+- **Generare AI prin proxy securizat:** Endpointul `/api/ai-suggestions` rulează prin Lambda pe AWS, iar cheia providerului rămâne în backend, nu în browser sau Git. Proxy-ul poate fi configurat cu Gemini, OpenAI, Anthropic sau OpenRouter.
 - **Panouri Dinamice Populate Automat:** Asistentul AI returnează acum un bloc JSON structurat care populează automat secțiunile de jos:
   - **Opriri pe traseu:** Locuri de pauză (km, utilitate pentru copii, parcuri).
   - **Atracții turistice:** Locuri emblematice de văzut pe parcurs.

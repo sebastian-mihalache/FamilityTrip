@@ -30,12 +30,52 @@ Evită pentru prima versiune EC2, NAT Gateway, load balancer sau baze de date. N
 2. Creează stack nou și încarcă `aws/cloudformation-ai-proxy.yaml`.
 3. Alege o regiune apropiată, de exemplu `eu-central-1` sau `eu-west-1`.
 4. Completează parametrii:
-   - `GeminiApiKey`: cheia providerului AI pentru template-ul curent. Nu o salva în fișiere locale reale.
-   - `GeminiModel`: `gemini-2.5-flash` sau modelul configurat pentru provider.
+   - `AiProvider`: `gemini`, `openai`, `anthropic` sau `openrouter`.
+   - `AiProviderApiKey`: cheia providerului AI pentru template-ul curent. Poate rămâne gol dacă vrei AI dezactivat temporar sau dacă folosești `AiProviderSecretArn`.
+   - `AiProviderSecretArn`: opțional, ARN-ul unui secret din AWS Secrets Manager; recomandat pentru producție.
+   - `AiModel`: modelul providerului ales, de exemplu `gemini-2.5-flash`.
    - `AllowedOrigin`: pentru primul test poți pune `*`; după ce ai URL-ul Amplify, schimbă-l în URL-ul aplicației.
 5. La final, intră în tabul `Outputs` și copiază `AiEndpoint`.
 
 Pentru valori exemplu fără secrete reale, vezi `aws/example.env`. Nu copia niciodată o cheie reală în GitHub sau în documentație.
+
+### Provideri AI suportați
+
+Proxy-ul poate folosi aceeași interfață din aplicație cu mai mulți provideri. Schimbi doar parametrii din CloudFormation sau variabilele din Terraform:
+
+| Provider | `AiProvider` | Exemplu `AiModel` | Cheie |
+| --- | --- | --- | --- |
+| Google Gemini | `gemini` | `gemini-2.5-flash` | Google AI Studio / Gemini API |
+| OpenAI | `openai` | `gpt-4.1-mini` | OpenAI API key |
+| Anthropic | `anthropic` | `claude-sonnet-4-20250514` | Anthropic API key |
+| OpenRouter | `openrouter` | `google/gemini-2.5-flash` sau alt model din OpenRouter | OpenRouter API key |
+
+Pentru cel mai simplu test rămâi pe `gemini`. Pentru flexibilitate, `openrouter` e interesant fiindcă folosește o singură cheie pentru mai multe modele, dar verifică prețurile fiecărui model înainte să îl lași în producție.
+
+Secretul din Secrets Manager poate fi text simplu, adică doar cheia, sau JSON:
+
+```json
+{
+  "provider": "openrouter",
+  "model": "google/gemini-2.5-flash",
+  "apiKey": "pui_cheia_doar_in_aws_nu_in_git"
+}
+```
+
+### Cum scoți cheia veche din AWS
+
+Dacă backendul este creat cu CloudFormation:
+
+1. Revocă cheia veche din consola providerului AI.
+2. În AWS CloudFormation, intră pe stack-ul aplicației.
+3. Alege `Update` și încarcă versiunea curentă din `aws/cloudformation-ai-proxy.yaml`.
+4. La parametri folosește `AiProviderApiKey`, nu vechiul nume `GeminiApiKey`.
+5. Dacă vrei AI oprit temporar, lasă `AiProviderApiKey` și `AiProviderSecretArn` goale și deploy-ul va elimina cheia din variabilele Lambda.
+6. După update, verifică în Lambda > Configuration > Environment variables că nu mai apare `GEMINI_API_KEY`.
+
+Pentru producție, varianta mai bună este să creezi un secret în Secrets Manager, să pui ARN-ul la `AiProviderSecretArn` și să lași `AiProviderApiKey` gol. Lambda va primi doar ARN-ul și va citi cheia la runtime.
+
+Dacă treci backendul pe Terraform, nu amesteca Terraform peste aceeași Lambda creată de CloudFormation fără import sau migrare. Creează o Lambda nouă administrată de Terraform sau importă resursele existente în state.
 
 Template-ul creează:
 
@@ -65,7 +105,7 @@ Important:
 - adaugă și varianta cu slash final `/api/ai-suggestions/`, ca fallback;
 - dacă endpointul răspunde cu `301` către `/api/ai-suggestions/` sau `404` de la S3, rewrite-ul nu este prins încă.
 
-Dacă nu pui rewrite-ul, aplicația tot poate folosi AI-ul, dar va trebui să introduci URL-ul complet în câmpul `Endpoint AI`. Cheia AI rămâne ascunsă în Lambda.
+Dacă nu pui rewrite-ul, aplicația nu va ajunge la Lambda prin `/api/ai-suggestions`, chiar dacă frontendul se încarcă. Cheia AI rămâne ascunsă în Lambda.
 
 ## 3.1 După modificări locale
 
@@ -90,7 +130,7 @@ Pentru Git deploy, doar faci commit/push; pentru manual deploy trebuie reîncăr
 
 1. Deschide URL-ul Amplify.
 2. Pune un traseu, de exemplu `Craiova, România -> Durrës, Albania -> Bari, Italia`.
-3. Lasă `Mod AI` pe `Endpoint server`.
+3. Deschide tabul `AI`.
 4. Apasă `Cere sugestii AI`.
 5. Dacă primești eroare CORS, verifică `AllowedOrigin` și rewrite-ul din Amplify.
 

@@ -83,8 +83,10 @@ http://127.0.0.1:4173/?from=Craiova%2C%20Romania&to=Bari%2C%20Italy&auto=1
 2. Alegi stack-ul existent pentru aplicație.
 3. Apeși `Update`.
 4. Încarci `aws/cloudformation-ai-proxy.yaml`.
-5. La parametri păstrezi cheia AI ca existing value, dacă te întreabă. Cheia nu se salvează în Git; pentru exemplu fără secret real vezi `aws/example.env`.
+5. La parametri folosești `AiProvider`, `AiProviderApiKey`, `AiProviderSecretArn` și `AiModel`. Dacă vrei să elimini cheia veche din Lambda, lasă `AiProviderApiKey` și `AiProviderSecretArn` goale și verifică după update că `GEMINI_API_KEY` nu mai există în Environment variables.
 6. Confirmi update-ul.
+
+Providerii pregătiți în backend sunt `gemini`, `openai`, `anthropic` și `openrouter`. Pentru producție, recomandarea este să pui cheia în AWS Secrets Manager și să treci doar ARN-ul în `AiProviderSecretArn`.
 
 ### Rewrites în Amplify
 
