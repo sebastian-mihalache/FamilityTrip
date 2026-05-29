@@ -1,0 +1,13 @@
+.venv/
+.streamlit/
+__pycache__/
+*.py
+*.tar.gz
+K8s_troubleshooting.md
+Kubernetes.md
+Linux.md
+Terraform.md
+Terraform_AWS_s3_bucket_best_practice.md
+azure_k8s_.md
+.env
+.DS_Store
