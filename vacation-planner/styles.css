@@ -189,6 +189,21 @@ h1 {
   line-height: 1.15;
 }
 
+.version-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  margin-top: 5px;
+  border: 1px solid #d6ded8;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--muted);
+  padding: 0 8px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 h2 {
   margin-top: 3px;
   font-size: clamp(1.35rem, 2vw, 2rem);
@@ -1023,6 +1038,12 @@ textarea {
   white-space: nowrap;
 }
 
+.footer-version {
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
 body[data-theme="dark"] .planner-panel,
 body[data-theme="dark"] .metric,
 body[data-theme="dark"] .map-panel,
@@ -1098,6 +1119,11 @@ body[data-theme="dark"] .workspace-tab.active {
 body[data-theme="dark"] .quick-link {
   border-color: #355646;
   background: #13251c;
+}
+
+body[data-theme="dark"] .version-label {
+  border-color: #334453;
+  background: #101820;
 }
 
 body[data-theme="dark"] .brand-mark,
