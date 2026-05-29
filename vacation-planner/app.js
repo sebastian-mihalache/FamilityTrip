@@ -3281,17 +3281,18 @@ function handlePrintPdf() {
   
   const currentLanguage = language;
   
-  // Format timelines
+  // Format timeline cards from the current UI markup.
   const timelineHtml = Array.from(document.querySelectorAll("#timeline .timeline-item")).map(item => {
-    const badge = item.querySelector(".timeline-badge")?.textContent || "";
-    const name = item.querySelector(".timeline-content strong")?.textContent || "";
-    const detail = item.querySelector(".timeline-content small")?.textContent || "";
-    const desc = item.querySelector(".timeline-desc")?.innerHTML || "";
+    const textBlock = item.querySelector(".timeline-text");
+    const spans = Array.from(textBlock?.querySelectorAll("span") || []);
+    const badge = spans[0]?.textContent || "";
+    const name = textBlock?.querySelector("strong")?.textContent || "";
+    const desc = spans[1]?.textContent || "";
     return `
       <div class="print-timeline-item">
         <div class="print-badge">${badge}</div>
         <div class="print-timeline-content">
-          <strong>${name}</strong> <span class="print-detail">${detail}</span>
+          <strong>${name}</strong>
           <div class="print-desc">${desc}</div>
         </div>
       </div>
@@ -3313,18 +3314,18 @@ function handlePrintPdf() {
     `;
   }).join("");
   
-  // Format cost breakdown
-  const breakdownHtml = Array.from(document.querySelectorAll("#costBreakdown .breakdown-row")).map(row => {
-    const country = row.querySelector("strong")?.textContent || "";
-    const kms = row.querySelector("span:nth-of-type(1)")?.textContent || "";
-    const fuel = row.querySelector("span:nth-of-type(2)")?.textContent || "";
-    const toll = row.querySelector("span:nth-of-type(3)")?.textContent || "";
+  // Format cost breakdown cards from the current UI markup.
+  const breakdownHtml = Array.from(document.querySelectorAll("#costBreakdown .breakdown-card")).map(row => {
+    const country = row.querySelector("strong:first-child")?.textContent || row.querySelector("strong")?.textContent || "";
+    const detail = row.querySelector("span:nth-of-type(1)")?.textContent || "";
+    const costMeta = row.querySelector("span:nth-of-type(2)")?.textContent || "";
+    const totalCost = row.querySelector("strong:last-child")?.textContent || "";
     return `
       <tr>
         <td><strong>${country}</strong></td>
-        <td>${kms}</td>
-        <td>${fuel}</td>
-        <td>${toll}</td>
+        <td>${detail}</td>
+        <td>${costMeta}</td>
+        <td>${totalCost}</td>
       </tr>
     `;
   }).join("");
@@ -3493,7 +3494,7 @@ function handlePrintPdf() {
       <div class="summary-box">
         <strong>${t("totalEstimate")}: ${euro(total)}</strong> (${euro(total / plan.people)} / ${t("perPerson")})
         <div style="font-size: 12px; margin-top: 5px; color: #4b5563;">
-          ${t("fuel")}: ${euro(plan.fuelCost)} | ${t("lodging")}: ${euro(plan.lodgingCost)} | ${currentLanguage === "en" ? "Food" : "Mâncare"}: ${euro(plan.foodCost)} | ${currentLanguage === "en" ? "Transit & Vignettes" : "Taxe drum & ferry"}: ${euro(plan.roadCosts + (plan.state.ferry || 0))}
+          ${t("fuel")}: ${euro(plan.fuelCost)} | ${t("lodging")}: ${euro(plan.lodgingCost)} | ${currentLanguage === "en" ? "Food" : "Mâncare"}: ${euro(plan.foodCost)} | ${currentLanguage === "en" ? "Transit & Vignettes" : "Taxe drum & ferry"}: ${euro(plan.roadCosts)}
         </div>
       </div>
 
