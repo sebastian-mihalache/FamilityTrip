@@ -77,8 +77,16 @@
           </div>
         </div>
 
+        <nav class="planner-tabs" aria-label="Secțiuni planificare">
+          <button class="planner-tab active" type="button" data-planner-tab="route">Traseu</button>
+          <button class="planner-tab" type="button" data-planner-tab="family">Familie</button>
+          <button class="planner-tab" type="button" data-planner-tab="costs">Costuri</button>
+          <button class="planner-tab" type="button" data-planner-tab="budget">Buget</button>
+          <button class="planner-tab" type="button" data-planner-tab="saved">Scenarii</button>
+        </nav>
+
         <!-- Saved Scenarios Manager -->
-        <section class="scenario-manager" aria-label="Administrare scenarii">
+        <section class="scenario-manager planner-pane" data-planner-pane="saved" aria-label="Administrare scenarii" hidden>
           <div class="section-title">
             <span id="lblSavedScenarios">Scenarii salvate</span>
           </div>
@@ -99,7 +107,7 @@
         </section>
 
         <form id="tripForm" class="planner-form">
-          <section class="form-section">
+          <section class="form-section planner-pane active" data-planner-pane="route">
             <div class="section-title">
               <span>Traseu</span>
               <button class="icon-button" id="resetBtn" type="button" aria-label="Resetează" title="Resetează">
@@ -177,7 +185,7 @@
             </div>
           </section>
 
-          <section class="form-section">
+          <section class="form-section planner-pane" data-planner-pane="family" hidden>
             <div class="section-title">
               <span>Familie și confort</span>
             </div>
@@ -211,7 +219,7 @@
             </div>
           </section>
 
-          <section class="form-section">
+          <section class="form-section planner-pane" data-planner-pane="costs" hidden>
             <div class="section-title">
               <span>Combustibil și taxe</span>
             </div>
@@ -263,7 +271,7 @@
             <div class="zone-editor" id="routeZones" aria-label="Țări pe traseu"></div>
           </section>
 
-          <section class="form-section">
+          <section class="form-section planner-pane" data-planner-pane="budget" hidden>
             <div class="section-title">
               <span>Buget sejur</span>
             </div>
@@ -361,95 +369,170 @@
           </div>
         </section>
 
-        <section class="content-grid">
-          <!-- Pre-trip Checklist -->
-          <div class="checklist-panel wide" id="checklistPanel">
-            <div class="checklist-title-row" id="checklistTitleRow">
-              <h3>
-                <svg style="stroke: var(--teal); width: 22px; height: 22px; margin-right: 4px;"><use href="#icon-route"></use></svg>
-                <span id="lblChecklistTitle">Pregătiri și Checklist Traseu</span>
-              </h3>
-              <span id="checklistToggleArrow" style="font-weight: bold; font-size: 1.2rem; transform: rotate(0deg); transition: transform 0.2s; color: var(--muted);">▼</span>
-            </div>
-            <div class="checklist-body" id="checklistBody">
-              <!-- Dynamically populated checklist items -->
+        <section class="workspace-tabs" aria-label="Rezultate plan">
+          <div class="workspace-tab-list" role="tablist" aria-label="Rezultate">
+            <button class="workspace-tab active" type="button" data-workspace-tab="plan">Plan</button>
+            <button class="workspace-tab" type="button" data-workspace-tab="costs">Costuri</button>
+            <button class="workspace-tab" type="button" data-workspace-tab="lodging">Cazări</button>
+            <button class="workspace-tab" type="button" data-workspace-tab="ai">AI</button>
+            <button class="workspace-tab" type="button" data-workspace-tab="checklist">Checklist</button>
+          </div>
+
+          <div class="workspace-tab-panel active" data-workspace-panel="plan">
+            <div class="content-grid">
+              <div class="content-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow" data-i18n="dayPlan">Plan pe zile</p>
+                    <h3 data-i18n="itinerary">Itinerar</h3>
+                  </div>
+                </div>
+                <div id="timeline" class="timeline"></div>
+              </div>
+
+              <div class="content-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow" data-i18n="enRoute">Pe traseu</p>
+                    <h3 data-i18n="goodStops">Opriri și locuri de văzut</h3>
+                  </div>
+                </div>
+                <div class="split-list compact-split">
+                  <div>
+                    <h4 data-i18n="goodStops">Opriri bune</h4>
+                    <div id="stopList" class="plain-list"></div>
+                  </div>
+                  <div>
+                    <h4 data-i18n="placesToSee">Zone de văzut</h4>
+                    <div id="attractionList" class="plain-list"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="content-panel wide">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Costuri pe drum</p>
-                <h3>Combustibil, țări și taxe</h3>
+          <div class="workspace-tab-panel" data-workspace-panel="costs" hidden>
+            <div class="content-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow" data-i18n="roadCosts">Costuri pe drum</p>
+                  <h3 data-i18n="fuelCountriesTaxes">Combustibil, țări și taxe</h3>
+                </div>
               </div>
-            </div>
-            <div id="costBreakdown" class="breakdown-grid"></div>
-          </div>
-
-          <div class="content-panel wide">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">AI planner</p>
-                <h3>Zone de văzut și idei pe traseu</h3>
-              </div>
-            </div>
-            <div class="ai-panel">
-              <input id="aiProvider" type="hidden" value="proxy" />
-              <input id="aiModel" type="hidden" value="gemini-2.5-flash" />
-              <input id="aiEndpoint" type="hidden" value="/api/ai-suggestions" />
-              <input id="aiKey" type="hidden" value="" />
-              <label>
-                Cerere info AI
-                <textarea id="aiPrompt" rows="4">Sugerează locuri de văzut pe traseu, opriri bune cu copii, ce merită în destinație și ce merită evitat. Vreau recomandări practice, pe zile, cu distanțe aproximative.</textarea>
-              </label>
-              <div class="actions-row compact-actions">
-                <button class="primary-button" id="runAiBtn" type="button">
-                  <svg><use href="#icon-route"></use></svg>
-                  Cere sugestii AI
-                </button>
-                <button class="secondary-button" id="openAiResultBtn" type="button" hidden>
-                  Vezi rezultat
-                </button>
-              </div>
-              <div id="aiOutput" class="ai-output">Endpoint server activ. Poți cere sugestii fără API key în pagină după ce rewrite-ul din Amplify trimite /api/ai-suggestions către Lambda.</div>
+              <div id="costBreakdown" class="breakdown-grid"></div>
             </div>
           </div>
 
-          <div class="content-panel">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Plan pe zile</p>
-                <h3>Itinerar</h3>
+          <div class="workspace-tab-panel" data-workspace-panel="lodging" hidden>
+            <div class="content-grid">
+              <div class="content-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow" data-i18n="stays">Cazări</p>
+                    <h3 data-i18n="candidateOptions">Opțiuni candidate</h3>
+                  </div>
+                </div>
+                <div id="lodgingOptions" class="lodging-list"></div>
+              </div>
+              <div class="content-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow">Zone cazare</p>
+                    <h3>Unde merită căutat</h3>
+                  </div>
+                </div>
+                <div id="lodgingAreaList" class="plain-list"></div>
               </div>
             </div>
-            <div id="timeline" class="timeline"></div>
           </div>
 
-          <div class="content-panel">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Cazări</p>
-                <h3>Opțiuni candidate</h3>
+          <div class="workspace-tab-panel" data-workspace-panel="ai" hidden>
+            <div class="content-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">AI planner</p>
+                  <h3>Research și sugestii personalizate</h3>
+                </div>
+              </div>
+              <div class="ai-panel">
+                <input id="aiProvider" type="hidden" value="proxy" />
+                <input id="aiModel" type="hidden" value="gemini-2.5-flash" />
+                <input id="aiEndpoint" type="hidden" value="/api/ai-suggestions" />
+                <input id="aiKey" type="hidden" value="" />
+                <div class="ai-brief">
+                  <label>
+                    Stil concediu
+                    <select id="tripStyle">
+                      <option value="mixt">Mixt: relaxare + explorare</option>
+                      <option value="relaxare">Relaxare, plajă, program lejer</option>
+                      <option value="explorare">Explorare, orașe, atracții</option>
+                    </select>
+                  </label>
+                  <label>
+                    Ritm
+                    <select id="travelPace">
+                      <option value="lejer">Lejer, cu pauze dese</option>
+                      <option value="normal">Normal</option>
+                      <option value="intens">Intens, cât mai multe locuri</option>
+                    </select>
+                  </label>
+                  <label>
+                    Tip cazare
+                    <select id="lodgingStyle">
+                      <option value="apartament">Apartament cu parcare</option>
+                      <option value="hotel">Hotel</option>
+                      <option value="resort">Resort/family hotel</option>
+                      <option value="orice">Orice variantă bună</option>
+                    </select>
+                  </label>
+                  <label>
+                    Prioritate cazare
+                    <select id="lodgingPriority">
+                      <option value="parcare">Parcare și acces auto</option>
+                      <option value="pret">Preț bun</option>
+                      <option value="centru">Centru / mers pe jos</option>
+                      <option value="plaja">Plajă / faleză</option>
+                    </select>
+                  </label>
+                  <label>
+                    Interese
+                    <input id="interestTags" type="text" placeholder="ex: plajă, istorie, mâncare, copii" />
+                  </label>
+                  <label>
+                    De evitat
+                    <input id="avoidTags" type="text" placeholder="ex: drumuri grele, zone fără parcare" />
+                  </label>
+                </div>
+                <label>
+                  Cerere info AI
+                  <textarea id="aiPrompt" rows="4">Sugerează locuri de văzut pe traseu, opriri bune cu copii, ce merită în destinație și ce merită evitat. Vreau recomandări practice, pe zile, cu distanțe aproximative.</textarea>
+                </label>
+                <div class="actions-row compact-actions">
+                  <button class="primary-button" id="runAiBtn" type="button">
+                    <svg><use href="#icon-route"></use></svg>
+                    Cere sugestii AI
+                  </button>
+                  <button class="secondary-button" id="openAiResultBtn" type="button" hidden>
+                    Vezi rezultat
+                  </button>
+                </div>
+                <div id="researchLinks" class="research-links"></div>
+                <div id="aiOutput" class="ai-output">Endpoint server activ. Poți cere sugestii fără API key în pagină după ce rewrite-ul din Amplify trimite /api/ai-suggestions către Lambda.</div>
               </div>
             </div>
-            <div id="lodgingOptions" class="lodging-list"></div>
           </div>
 
-          <div class="content-panel wide">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Pe traseu</p>
-                <h3>Opriri și locuri de văzut</h3>
+          <div class="workspace-tab-panel" data-workspace-panel="checklist" hidden>
+            <div class="checklist-panel" id="checklistPanel">
+              <div class="checklist-title-row" id="checklistTitleRow">
+                <h3>
+                  <svg style="stroke: var(--teal); width: 22px; height: 22px; margin-right: 4px;"><use href="#icon-route"></use></svg>
+                  <span id="lblChecklistTitle">Pregătiri și Checklist Traseu</span>
+                </h3>
+                <span id="checklistToggleArrow" style="font-weight: bold; font-size: 1.2rem; transform: rotate(0deg); transition: transform 0.2s; color: var(--muted);">▼</span>
               </div>
-            </div>
-            <div class="split-list">
-              <div>
-                <h4>Opriri bune</h4>
-                <div id="stopList" class="plain-list"></div>
-              </div>
-              <div>
-                <h4>Zone de văzut</h4>
-                <div id="attractionList" class="plain-list"></div>
+              <div class="checklist-body" id="checklistBody">
+                <!-- Dynamically populated checklist items -->
               </div>
             </div>
           </div>

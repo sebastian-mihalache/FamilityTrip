@@ -316,6 +316,12 @@ const defaults = {
   aiKey: "",
   aiPrompt: "Sugerează locuri de văzut pe traseu, opriri bune cu copii, ce merită în destinație și ce merită evitat. Vreau recomandări practice, pe zile, cu distanțe aproximative.",
   aiOutput: "",
+  tripStyle: "mixt",
+  travelPace: "lejer",
+  lodgingStyle: "apartament",
+  lodgingPriority: "parcare",
+  interestTags: "",
+  avoidTags: "",
   roundTrip: true
 };
 
@@ -359,7 +365,13 @@ const fields = {
   foodDaily: document.querySelector("#foodDaily"),
   tolls: document.querySelector("#tolls"),
   ferry: document.querySelector("#ferry"),
-  roundTrip: document.querySelector("#roundTrip")
+  roundTrip: document.querySelector("#roundTrip"),
+  tripStyle: document.querySelector("#tripStyle"),
+  travelPace: document.querySelector("#travelPace"),
+  lodgingStyle: document.querySelector("#lodgingStyle"),
+  lodgingPriority: document.querySelector("#lodgingPriority"),
+  interestTags: document.querySelector("#interestTags"),
+  avoidTags: document.querySelector("#avoidTags")
 };
 
 const form = document.querySelector("#tripForm");
@@ -401,6 +413,12 @@ const checklistTitleRow = document.querySelector("#checklistTitleRow");
 const checklistToggleArrow = document.querySelector("#checklistToggleArrow");
 const printPdfBtn = document.querySelector("#printPdfBtn");
 const destinationWeather = document.querySelector("#destinationWeather");
+const plannerTabs = document.querySelectorAll("[data-planner-tab]");
+const plannerPanes = document.querySelectorAll("[data-planner-pane]");
+const workspaceTabs = document.querySelectorAll("[data-workspace-tab]");
+const workspacePanels = document.querySelectorAll("[data-workspace-panel]");
+const lodgingAreaList = document.querySelector("#lodgingAreaList");
+const researchLinks = document.querySelector("#researchLinks");
 
 const uiText = {
   ro: {
@@ -457,6 +475,17 @@ const uiText = {
     roadCosts: "Costuri pe drum",
     fuelCountriesTaxes: "Combustibil, țări și taxe",
     aiIdeas: "Zone de văzut și idei pe traseu",
+    aiTab: "AI",
+    lodgingAreas: "Zone cazare",
+    whereToSearch: "Unde merită căutat",
+    researchAndAi: "Research și sugestii personalizate",
+    planTab: "Plan",
+    familyTab: "Familie",
+    costsTab: "Costuri",
+    budgetTab: "Buget",
+    lodgingTab: "Cazări",
+    savedTab: "Scenarii",
+    checklistTab: "Checklist",
     aiRequest: "Cerere info AI",
     askAi: "Cere sugestii AI",
     dayPlan: "Plan pe zile",
@@ -570,6 +599,17 @@ const uiText = {
     roadCosts: "Road costs",
     fuelCountriesTaxes: "Fuel, countries and tolls",
     aiIdeas: "Sightseeing and route ideas",
+    aiTab: "AI",
+    lodgingAreas: "Lodging areas",
+    whereToSearch: "Where to search",
+    researchAndAi: "Research and tailored ideas",
+    planTab: "Plan",
+    familyTab: "Family",
+    costsTab: "Costs",
+    budgetTab: "Budget",
+    lodgingTab: "Stays",
+    savedTab: "Saved",
+    checklistTab: "Checklist",
     aiRequest: "AI prompt",
     askAi: "Get AI suggestions",
     dayPlan: "Day-by-day plan",
@@ -658,6 +698,12 @@ function setText(selector, key) {
   if (element) element.textContent = t(key);
 }
 
+function setAllText(selector, key) {
+  document.querySelectorAll(selector).forEach((element) => {
+    element.textContent = t(key);
+  });
+}
+
 function setParentLabelText(fieldSelector, key) {
   const field = document.querySelector(fieldSelector);
   const label = field?.closest("label");
@@ -695,10 +741,20 @@ function applyLanguage(nextLanguage = language, options = {}) {
   langEnBtn.classList.toggle("active", language === "en");
 
   setText(".brand-row .eyebrow", "personalPlan");
-  setText("#tripForm .form-section:nth-of-type(1) .section-title span", "route");
-  setText("#tripForm .form-section:nth-of-type(2) .section-title span", "familyComfort");
-  setText("#tripForm .form-section:nth-of-type(3) .section-title span", "fuelTaxes");
-  setText("#tripForm .form-section:nth-of-type(4) .section-title span", "stayBudget");
+  setText("[data-planner-tab='route']", "route");
+  setText("[data-planner-tab='family']", "familyTab");
+  setText("[data-planner-tab='costs']", "costsTab");
+  setText("[data-planner-tab='budget']", "budgetTab");
+  setText("[data-planner-tab='saved']", "savedTab");
+  setText("[data-workspace-tab='plan']", "planTab");
+  setText("[data-workspace-tab='costs']", "costsTab");
+  setText("[data-workspace-tab='lodging']", "lodgingTab");
+  setText("[data-workspace-tab='ai']", "aiTab");
+  setText("[data-workspace-tab='checklist']", "checklistTab");
+  setText("[data-planner-pane='route'] .section-title span", "route");
+  setText("[data-planner-pane='family'] .section-title span", "familyComfort");
+  setText("[data-planner-pane='costs'] .section-title span", "fuelTaxes");
+  setText("[data-planner-pane='budget'] .section-title span", "stayBudget");
   setText(".route-builder:nth-of-type(1) .subsection-title", "waypoints");
   setText(".route-builder:nth-of-type(2) .subsection-title", "ferryOnRoute");
   setText(".topbar .eyebrow", "activeScenario");
@@ -709,17 +765,18 @@ function applyLanguage(nextLanguage = language, options = {}) {
   setText(".map-panel .eyebrow", "mapPlan");
   setText(".decision-panel .eyebrow", "comparison");
   setText(".decision-panel h3", "transport");
-  setText(".content-grid .content-panel:nth-child(1) .eyebrow", "roadCosts");
-  setText(".content-grid .content-panel:nth-child(1) h3", "fuelCountriesTaxes");
-  setText(".content-grid .content-panel:nth-child(2) h3", "aiIdeas");
-  setText(".content-grid .content-panel:nth-child(3) .eyebrow", "dayPlan");
-  setText(".content-grid .content-panel:nth-child(3) h3", "itinerary");
-  setText(".content-grid .content-panel:nth-child(4) .eyebrow", "stays");
-  setText(".content-grid .content-panel:nth-child(4) h3", "candidateOptions");
-  setText(".content-grid .content-panel:nth-child(5) .eyebrow", "enRoute");
-  setText(".content-grid .content-panel:nth-child(5) h3", "goodStops");
-  setText(".split-list > div:nth-child(1) h4", "goodStops");
-  setText(".split-list > div:nth-child(2) h4", "placesToSee");
+  setAllText("[data-i18n='roadCosts']", "roadCosts");
+  setAllText("[data-i18n='fuelCountriesTaxes']", "fuelCountriesTaxes");
+  setAllText("[data-i18n='dayPlan']", "dayPlan");
+  setAllText("[data-i18n='itinerary']", "itinerary");
+  setAllText("[data-i18n='stays']", "stays");
+  setAllText("[data-i18n='candidateOptions']", "candidateOptions");
+  setAllText("[data-i18n='enRoute']", "enRoute");
+  setAllText("[data-i18n='goodStops']", "goodStops");
+  setAllText("[data-i18n='placesToSee']", "placesToSee");
+  setText("[data-workspace-panel='lodging'] .content-panel:nth-child(2) .eyebrow", "lodgingAreas");
+  setText("[data-workspace-panel='lodging'] .content-panel:nth-child(2) h3", "whereToSearch");
+  setText("[data-workspace-panel='ai'] .content-panel h3", "researchAndAi");
   setText("#aiResultTitle", "aiGenerated");
 
   setParentLabelText("#from", "from");
@@ -1650,38 +1707,39 @@ function openAiResult() {
   aiResultModal.hidden = false;
 }
 
-function loadDefaults() {
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+function loadDefaults(stateOverride = {}, options = {}) {
   const params = new URLSearchParams(window.location.search);
   const queryState = {};
-  const hasRouteQuery = params.has("from") || params.has("to") || params.has("via") || params.has("ferry");
-  if (params.get("from")) queryState.from = params.get("from");
-  if (params.get("to")) queryState.to = params.get("to");
-  if (params.get("via")) queryState.waypoints = params.get("via").split("|").map((item) => item.trim()).filter(Boolean);
-  if (hasRouteQuery && !params.has("via")) queryState.waypoints = [];
-  if (params.get("ferry")) {
-    queryState.ferrySegments = params.get("ferry").split("|").map((item) => {
-      const [from = "", to = "", cost = "0", hours = "0"] = item.split(":");
-      return { from, to, cost: number(cost, 0), hours: number(hours, 0) };
-    });
+  if (options.useQuery !== false) {
+    const hasRouteQuery = params.has("from") || params.has("to") || params.has("via") || params.has("ferry");
+    if (params.get("from")) queryState.from = params.get("from");
+    if (params.get("to")) queryState.to = params.get("to");
+    if (params.get("via")) queryState.waypoints = params.get("via").split("|").map((item) => item.trim()).filter(Boolean);
+    if (hasRouteQuery && !params.has("via")) queryState.waypoints = [];
+    if (params.get("ferry")) {
+      queryState.ferrySegments = params.get("ferry").split("|").map((item) => {
+        const [from = "", to = "", cost = "0", hours = "0"] = item.split(":");
+        return { from, to, cost: number(cost, 0), hours: number(hours, 0) };
+      });
+    }
+    if (hasRouteQuery && !params.has("ferry")) queryState.ferrySegments = [];
+    if (hasRouteQuery) {
+      Object.assign(queryState, {
+        distanceKm: 0,
+        driveHours: 0,
+        routeSource: defaults.routeSource,
+        ferryLabel: "",
+        fromPlace: null,
+        toPlace: null,
+        routeGeometry: null,
+        waypointPlaces: [],
+        routeSegments: [],
+        routeVariants: [],
+        routeZones: []
+      });
+    }
   }
-  if (hasRouteQuery && !params.has("ferry")) queryState.ferrySegments = [];
-  if (hasRouteQuery) {
-    Object.assign(queryState, {
-      distanceKm: 0,
-      driveHours: 0,
-      routeSource: defaults.routeSource,
-      ferryLabel: "",
-      fromPlace: null,
-      toPlace: null,
-      routeGeometry: null,
-      waypointPlaces: [],
-      routeSegments: [],
-      routeVariants: [],
-      routeZones: []
-    });
-  }
-  const state = { ...defaults, ...saved, ...queryState };
+  const state = { ...defaults, ...stateOverride, ...queryState };
   language = state.language === "en" ? "en" : "ro";
   theme = state.theme === "dark" ? "dark" : "light";
   if (state.aiProvider === "gemini" && !state.aiKey) state.aiProvider = "proxy";
@@ -1716,6 +1774,12 @@ function loadDefaults() {
   aiOutput.classList.toggle("has-result", Boolean(state.aiOutput));
   openAiResultBtn.hidden = !state.aiOutput;
   aiResultModalText.textContent = state.aiOutput || "";
+  fields.tripStyle.value = state.tripStyle || defaults.tripStyle;
+  fields.travelPace.value = state.travelPace || defaults.travelPace;
+  fields.lodgingStyle.value = state.lodgingStyle || defaults.lodgingStyle;
+  fields.lodgingPriority.value = state.lodgingPriority || defaults.lodgingPriority;
+  fields.interestTags.value = state.interestTags || "";
+  fields.avoidTags.value = state.avoidTags || "";
   syncAiUi();
   routeMeta = {
     source: state.routeSource || defaults.routeSource,
@@ -1778,12 +1842,18 @@ function readState() {
     aiKey: "",
     aiPrompt: aiPrompt.value.trim() || defaults.aiPrompt,
     aiOutput: aiOutput.classList.contains("has-result") ? aiOutput.textContent.trim() : "",
+    tripStyle: fields.tripStyle.value,
+    travelPace: fields.travelPace.value,
+    lodgingStyle: fields.lodgingStyle.value,
+    lodgingPriority: fields.lodgingPriority.value,
+    interestTags: fields.interestTags.value.trim(),
+    avoidTags: fields.avoidTags.value.trim(),
     roundTrip: fields.roundTrip.checked
   };
 }
 
 function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  return state;
 }
 
 function reverseFerrySegments(segments = []) {
@@ -2375,33 +2445,38 @@ function flightNote(state, flightTotal, carTotal) {
 function render() {
   const plan = calculatePlan();
   lastPlan = plan;
-  saveState(plan.state);
 
   const title = plan.state.from && plan.state.to
     ? `${shortPlace(plan.state.from)} → ${shortPlace(plan.state.to)}`
     : "Alege ruta";
+  const hasPlanInput = Boolean(plan.state.from || plan.state.to || plan.state.distanceKm > 0);
   document.querySelector("#routeTitle").textContent = title;
   document.querySelector("#mapTitle").textContent = title.replace(" → ", " - ");
-  document.querySelector("#topbarMeta").innerHTML = [
-    `${plan.nights} ${t("nights")}`,
-    `${plan.people} ${t("people")}`,
-    `${Math.round(plan.totalRouteKm)} ${t("totalKm")}`,
-    plan.state.routeSource,
-    fuelTypeLabel(plan.state.fuelType)
-  ].map((item) => `<span class="pill">${item}</span>`).join("");
+  const metaItems = hasPlanInput
+    ? [
+      `${plan.nights} ${t("nights")}`,
+      `${plan.people} ${t("people")}`,
+      `${Math.round(plan.totalRouteKm)} ${t("totalKm")}`,
+      plan.state.routeSource,
+      fuelTypeLabel(plan.state.fuelType)
+    ]
+    : [t("notCalculated")];
+  document.querySelector("#topbarMeta").innerHTML = metaItems.map((item) => `<span class="pill">${item}</span>`).join("");
 
-  const total = plan.recommended ? plan.recommended.price : plan.carTotal;
+  const total = hasPlanInput ? (plan.recommended ? plan.recommended.price : plan.carTotal) : 0;
   document.querySelector("#totalEstimate").textContent = euro(total);
-  document.querySelector("#perPersonEstimate").textContent = `${euro(total / plan.people)} / ${t("perPerson")}`;
-  document.querySelector("#fuelEstimate").textContent = euro(plan.fuelCost);
-  document.querySelector("#fuelLiters").textContent = `${Math.round(plan.fuelUnits)} ${fuelProfiles[plan.state.fuelType].unit}`;
-  document.querySelector("#lodgingEstimate").textContent = euro(plan.lodgingCost);
+  document.querySelector("#perPersonEstimate").textContent = hasPlanInput ? `${euro(total / plan.people)} / ${t("perPerson")}` : `${euro(0)} / ${t("perPerson")}`;
+  document.querySelector("#fuelEstimate").textContent = euro(hasPlanInput ? plan.fuelCost : 0);
+  document.querySelector("#fuelLiters").textContent = `${hasPlanInput ? Math.round(plan.fuelUnits) : 0} ${fuelProfiles[plan.state.fuelType].unit}`;
+  document.querySelector("#lodgingEstimate").textContent = euro(hasPlanInput ? plan.lodgingCost : 0);
   document.querySelector("#lodgingNights").textContent =
-    language === "en"
+    !hasPlanInput
+      ? `0 ${t("nights")}`
+      : language === "en"
       ? `${plan.nights} ${t("nights")}, ${plan.state.rooms} room${plan.state.rooms > 1 ? "s" : ""}`
       : `${plan.nights} nopți, ${plan.state.rooms} cameră${plan.state.rooms > 1 ? "e" : ""}`;
-  document.querySelector("#bestMode").textContent = plan.recommended?.title || t("calculateRoute");
-  document.querySelector("#bestReason").textContent = plan.recommended
+  document.querySelector("#bestMode").textContent = hasPlanInput && plan.recommended ? plan.recommended.title : t("calculateRoute");
+  document.querySelector("#bestReason").textContent = hasPlanInput && plan.recommended
     ? (plan.recommended.score >= 85 ? t("bestFit") : t("bestBalanced"))
     : t("noRoute");
 
@@ -2410,7 +2485,9 @@ function render() {
   renderCostBreakdown(plan);
   renderTimeline(plan);
   renderLodging(plan);
+  renderLodgingAreas(plan);
   renderStops(plan);
+  renderResearchLinks(plan);
 
   // Update Checklist
   renderChecklist();
@@ -2799,6 +2876,9 @@ function buildAiContext(plan) {
     `Bacuri: ${plan.state.ferrySegments.length ? plan.state.ferrySegments.map((segment) => `${segment.from} - ${segment.to}, ${segment.hours}h, ${segment.cost} EUR`).join("; ") : "nu"}`,
     `Perioadă: ${plan.state.startDate} - ${plan.state.endDate}, ${plan.nights} nopți`,
     `Familie: ${plan.state.adults} adulți, ${plan.state.children} copii, vârste: ${plan.state.childAges || "n/a"}`,
+    `Preferințe: stil concediu ${plan.state.tripStyle}, ritm ${plan.state.travelPace}, cazare ${plan.state.lodgingStyle}, prioritate cazare ${plan.state.lodgingPriority}`,
+    `Interese declarate: ${plan.state.interestTags || "n/a"}`,
+    `De evitat: ${plan.state.avoidTags || "n/a"}`,
     `Țări pe traseu: ${plan.routeZones.map((zone) => `${zone.name} (${zone.km} km)`).join(", ")}`,
     `Cost estimat recomandat: ${Math.round(plan.recommended?.price || plan.carTotal)} EUR`,
     "",
@@ -2816,6 +2896,7 @@ async function runAiSuggestions() {
     showToast("Completează API key-ul Gemini.");
     return;
   }
+  activateWorkspaceTab("ai");
   const plan = lastPlan || calculatePlan();
     aiOutput.textContent = "Se cer sugestii AI...";
     aiOutput.classList.remove("has-result");
@@ -2832,11 +2913,11 @@ Important: La finalul răspunsului tău (după recomandările text detaliate), a
   "attractions": [
     {"title": "Nume Atractie/Loc", "description": "activități recomandate în acea zonă"}
   ],
-  "lodgings": [
-    {"title": "Nume opțiune / Tip cazare / Zonă", "price": pret_estimat_per_noapte_in_eur, "meta": "parcare gratuită, rating bun, mic dejun etc.", "tags": ["tag1", "tag2"]}
-  ]
-}
-Te rog completează datele de mai sus cu opțiuni reale adaptate exact la traseul generat. Încearcă să oferi 3-4 opriri recomandate pe parcursul distanței totale, 3-4 atracții de vizitat și 3 opțiuni de cazare.
+	  "lodgings": [
+	    {"title": "Zonă sau tip cazare recomandat", "price": pret_estimat_per_noapte_in_eur, "meta": "de ce zona se potrivește, parcare, acces, familie", "tags": ["tag1", "tag2"]}
+	  ]
+	}
+	Te rog completează datele de mai sus cu opțiuni reale adaptate exact la traseul generat și la preferințele din chestionar. Încearcă să oferi 3-4 opriri recomandate pe parcursul distanței totale, 3-4 atracții de vizitat și 3 zone/opțiuni de cazare.
 `;
     const augmentedPrompt = `${prompt}\n\n${systemPrompt}`;
     const payload = {
@@ -2909,6 +2990,131 @@ function showToast(message) {
   toast.classList.add("visible");
   window.clearTimeout(showToast.timeout);
   showToast.timeout = window.setTimeout(() => toast.classList.remove("visible"), 2400);
+}
+
+function activatePlannerTab(tabId) {
+  plannerTabs.forEach((button) => {
+    const isActive = button.dataset.plannerTab === tabId;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+  plannerPanes.forEach((pane) => {
+    const isActive = pane.dataset.plannerPane === tabId;
+    pane.classList.toggle("active", isActive);
+    pane.hidden = !isActive;
+  });
+}
+
+function activateWorkspaceTab(tabId) {
+  workspaceTabs.forEach((button) => {
+    const isActive = button.dataset.workspaceTab === tabId;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+  workspacePanels.forEach((panel) => {
+    const isActive = panel.dataset.workspacePanel === tabId;
+    panel.classList.toggle("active", isActive);
+    panel.hidden = !isActive;
+  });
+  if (tabId === "ai") renderResearchLinks(lastPlan || calculatePlan());
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function searchUrl(kind, query) {
+  const encoded = encodeURIComponent(query);
+  if (kind === "maps") return `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+  if (kind === "booking") return `https://www.booking.com/searchresults.html?ss=${encoded}`;
+  if (kind === "tripadvisor") return `https://www.tripadvisor.com/Search?q=${encoded}`;
+  return `https://www.google.com/search?q=${encoded}`;
+}
+
+function renderResearchLinks(plan) {
+  if (!researchLinks) return;
+  const destination = plan?.state?.to || "";
+  const route = [plan?.state?.from, ...(plan?.state?.waypoints || []), plan?.state?.to].filter(Boolean).join(" ");
+  if (!destination && !route) {
+    researchLinks.innerHTML = `
+      <div class="research-empty">
+        Completează ruta ca să apară căutări rapide pentru atracții, cazare, parcări și opriri.
+      </div>
+    `;
+    return;
+  }
+
+  const baseDestination = destination || route;
+  const links = [
+    ["Atracții pe hartă", searchUrl("maps", `family attractions near ${baseDestination}`)],
+    ["Cazări Booking", searchUrl("booking", baseDestination)],
+    ["Parcări și centru", searchUrl("maps", `parking family hotel ${baseDestination}`)],
+    ["Review-uri locuri", searchUrl("tripadvisor", `${baseDestination} things to do family`)]
+  ];
+  if (route) links.push(["Opriri pe traseu", searchUrl("google", `best stops by car ${route}`)]);
+
+  researchLinks.innerHTML = `
+    <div class="research-title">Surse rapide online</div>
+    <div class="research-link-list">
+      ${links.map(([label, href]) => `
+        <a class="quick-link" href="${href}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>
+      `).join("")}
+    </div>
+  `;
+}
+
+function lodgingAreaSuggestions(plan) {
+  const destination = normalize(plan.state.to);
+  const shortDestination = shortPlace(plan.state.to || "destinație");
+  if (destination.includes("bari")) {
+    return [
+      ["Murat / Bari Centrale", "bun pentru mers pe jos, restaurante și gară; verifică parcarea înainte de rezervare"],
+      ["Bari Vecchia", "foarte frumos seara, dar accesul auto și parcarea pot fi mai complicate"],
+      ["Polignano a Mare / Monopoli", "mai potrivit pentru zile de mare și atmosferă de vacanță, la distanță scurtă de Bari"]
+    ];
+  }
+  if (destination.includes("durres") || destination.includes("durres")) {
+    return [
+      ["Zona plajă Durrës", "simplă pentru familie, restaurante aproape, verifică locul de parcare"],
+      ["Aproape de port", "util dacă ai ferry dimineața sau seara târziu"],
+      ["Golem / Mali i Robit", "mai relaxat pentru sejur, potrivit pentru plajă și copii"]
+    ];
+  }
+  if (destination.includes("thassos") || destination.includes("tasos")) {
+    return [
+      ["Limenas", "bun pentru ferry, taverne și acces rapid la nordul insulei"],
+      ["Golden Beach", "potrivit pentru copii și plajă lungă"],
+      ["Potos / Limenaria", "mai animat seara, bun dacă vrei restaurante aproape"]
+    ];
+  }
+  if (destination.includes("grecia") || destination.includes("greece")) {
+    return [
+      ["Aproape de plajă", "reduce condusul local și ajută mult cu programul copiilor"],
+      ["Oraș cu faleză", "bun pentru plimbări seara și mese fără mașină"],
+      ["La marginea stațiunii", "de obicei mai ușor cu parcarea și bugetul"]
+    ];
+  }
+  return [
+    [`Centru ${shortDestination}`, "bun dacă vrei restaurante și plimbări fără mașină"],
+    ["Zonă cu parcare inclusă", "prioritară pentru road trip, mai ales cu bagaje și copii"],
+    ["Localitate apropiată mai liniștită", "poate reduce prețul și aglomerația, dar verifică timpul până la obiective"]
+  ];
+}
+
+function renderLodgingAreas(plan) {
+  if (!lodgingAreaList) return;
+  const areas = lodgingAreaSuggestions(plan);
+  lodgingAreaList.innerHTML = areas.map(([title, text]) => `
+    <article class="plain-item">
+      <strong>${escapeHtml(title)}</strong>
+      <span>${escapeHtml(text)}</span>
+    </article>
+  `).join("");
 }
 
 // ==========================================
@@ -3012,8 +3218,8 @@ function handleSelectScenario() {
   const scenario = list.find(s => s.id === id);
   if (!scenario) return;
   
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(scenario.state));
-  loadDefaults();
+  loadDefaults(scenario.state, { useQuery: false });
+  activatePlannerTab("route");
   render();
   
   showToast(language === "en" ? `Scenario "${scenario.name}" loaded.` : `Scenariul "${scenario.name}" a fost încărcat.`);
@@ -3546,6 +3752,7 @@ form.addEventListener("submit", (event) => {
 
 document.querySelector("#resetBtn").addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
+  if (window.location.search) window.history.replaceState({}, document.title, window.location.pathname);
   routeMeta = {
     source: defaults.routeSource,
     fromPlace: null,
@@ -3557,7 +3764,9 @@ document.querySelector("#resetBtn").addEventListener("click", () => {
     routeVariants: []
   };
   routeVariantCache = new Map();
-  loadDefaults();
+  loadDefaults({}, { useQuery: false });
+  activatePlannerTab("route");
+  activateWorkspaceTab("plan");
   render();
   showToast("Date resetate.");
 });
@@ -3585,6 +3794,12 @@ closeAiResultBtn.addEventListener("click", closeAiResult);
 openAiResultBtn.addEventListener("click", openAiResult);
 aiResultModal.addEventListener("click", (event) => {
   if (event.target === aiResultModal) closeAiResult();
+});
+plannerTabs.forEach((button) => {
+  button.addEventListener("click", () => activatePlannerTab(button.dataset.plannerTab));
+});
+workspaceTabs.forEach((button) => {
+  button.addEventListener("click", () => activateWorkspaceTab(button.dataset.workspaceTab));
 });
 routeVariantsEl.addEventListener("click", (event) => {
   const button = event.target.closest("[data-route-variant]");
@@ -3732,9 +3947,12 @@ if (printPdfBtn) printPdfBtn.addEventListener("click", handlePrintPdf);
 // Initialize Saved Scenarios dropdown
 loadSavedScenariosList();
 
+const bootParams = new URLSearchParams(window.location.search);
+const shouldAutoRouteOnBoot = bootParams.get("auto") === "1";
 loadDefaults();
 render();
+if (window.location.search) window.history.replaceState({}, document.title, window.location.pathname);
 
-if (new URLSearchParams(window.location.search).get("auto") === "1") {
+if (shouldAutoRouteOnBoot) {
   window.setTimeout(applyAutoRouteEstimate, 150);
 }
