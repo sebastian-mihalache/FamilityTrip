@@ -3,9 +3,9 @@
 Varianta recomandată pentru început, mai ales cu credit de test:
 
 1. Frontend static în AWS Amplify Hosting.
-2. Backend AI minim prin Lambda + API Gateway HTTP API.
-3. Cheia AI stă numai în Lambda, nu în browser și nu în Git. Template-ul actual folosește Gemini ca provider implicit.
-4. Aplicația folosește în continuare endpointul `/api/ai-suggestions`.
+2. Pentru AI poți folosi modul direct din interfață, fără backend AWS.
+3. Opțional, backend AI minim prin Lambda + API Gateway HTTP API dacă vrei ca cheia AI să stea numai în Lambda, nu în browser și nu în Git.
+4. Pentru varianta cu backend, aplicația folosește endpointul `/api/ai-suggestions`.
 
 Evită pentru prima versiune EC2, NAT Gateway, load balancer sau baze de date. Nu ai nevoie de ele încă și pot consuma creditul fără să aducă valoare aplicației.
 
@@ -24,7 +24,9 @@ Evită pentru prima versiune EC2, NAT Gateway, load balancer sau baze de date. N
 2. În Amplify, conectează repo-ul.
 3. Amplify poate folosi `amplify.yml`; nu există build step, doar publică `index.html`, `styles.css` și `app.js`.
 
-## 2. Backend AI
+## 2. Backend AI opțional
+
+Dacă folosești modul direct din interfață, poți să sari peste secțiunea asta. Backendul este pentru momentul în care vrei să nu expui cheia în browser pe o aplicație publică.
 
 1. Deschide CloudFormation.
 2. Creează stack nou și încarcă `aws/cloudformation-ai-proxy.yaml`.

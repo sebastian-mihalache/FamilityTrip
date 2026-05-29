@@ -895,6 +895,20 @@ textarea {
   padding: 14px;
 }
 
+.ai-config-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ai-mode-hint {
+  margin: -2px 0 2px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
 .ai-brief {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1251,6 +1265,7 @@ body[data-theme="dark"] .leaflet-tile {
   .content-grid,
   .split-list,
   .breakdown-grid,
+  .ai-config-grid,
   .ai-brief {
     grid-template-columns: 1fr;
   }

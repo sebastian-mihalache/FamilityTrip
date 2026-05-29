@@ -310,7 +310,7 @@ const defaults = {
   routeZones: [],
   language: "ro",
   theme: "light",
-  aiProvider: "proxy",
+  aiProvider: "gemini",
   aiEndpoint: "/api/ai-suggestions",
   aiModel: "gemini-2.5-flash",
   aiKey: "",
@@ -324,6 +324,16 @@ const defaults = {
   avoidTags: "",
   roundTrip: true
 };
+
+const aiModelDefaults = {
+  gemini: "gemini-2.5-flash",
+  openai: "gpt-4.1-mini",
+  anthropic: "claude-sonnet-4-20250514",
+  openrouter: "google/gemini-2.5-flash",
+  proxy: "gemini-2.5-flash"
+};
+const aiKnownDefaultModels = new Set(Object.values(aiModelDefaults));
+const directAiProviders = new Set(["gemini", "openai", "anthropic", "openrouter"]);
 
 let mode = "comfort";
 let lastPlan = null;
@@ -394,6 +404,10 @@ const aiProvider = document.querySelector("#aiProvider");
 const aiEndpoint = document.querySelector("#aiEndpoint");
 const aiModel = document.querySelector("#aiModel");
 const aiKey = document.querySelector("#aiKey");
+const aiEndpointWrap = document.querySelector("#aiEndpointWrap");
+const aiModelWrap = document.querySelector("#aiModelWrap");
+const aiKeyWrap = document.querySelector("#aiKeyWrap");
+const aiModeHint = document.querySelector("#aiModeHint");
 const aiPrompt = document.querySelector("#aiPrompt");
 const aiOutput = document.querySelector("#aiOutput");
 const runAiBtn = document.querySelector("#runAiBtn");
@@ -486,6 +500,10 @@ const uiText = {
     lodgingTab: "Cazări",
     savedTab: "Scenarii",
     checklistTab: "Checklist",
+    aiMode: "Mod AI",
+    aiModel: "Model",
+    aiKey: "API key",
+    aiEndpoint: "Endpoint server",
     aiRequest: "Cerere info AI",
     askAi: "Cere sugestii AI",
     dayPlan: "Plan pe zile",
@@ -503,7 +521,10 @@ const uiText = {
     fuelOnlineStatusDefault: "Prețurile online se aplică pe țările detectate în traseu.",
     tollStatusDefault: "Taxele sunt estimate pe țări: vignetă, rovinietă sau €/km unde se aplică.",
     aiPromptDefault: "Sugerează locuri de văzut pe traseu, opriri bune cu copii, ce merită în destinație și ce merită evitat. Vreau recomandări practice, pe zile, cu distanțe aproximative.",
-    aiOutputDefault: "Endpoint server activ. Poți cere sugestii fără API key în pagină după ce rewrite-ul din Amplify trimite /api/ai-suggestions către Lambda.",
+    aiOutputDefault: "Mod direct activ. Alege providerul, introdu cheia API și cere sugestii fără backend AWS.",
+    aiDirectHint: "Mod direct: cheia rămâne doar în browser și nu este salvată în aplicație.",
+    aiProxyHint: "AWS proxy: aplicația folosește endpointul server și nu cere cheia în pagină.",
+    aiKeyPlaceholder: "cheia providerului ales",
     fromPlaceholder: "ex: Craiova, România",
     toPlaceholder: "ex: Bari, Italia",
     waypointPlaceholder: "ex: Durrës, Albania",
@@ -610,6 +631,10 @@ const uiText = {
     lodgingTab: "Stays",
     savedTab: "Saved",
     checklistTab: "Checklist",
+    aiMode: "AI mode",
+    aiModel: "Model",
+    aiKey: "API key",
+    aiEndpoint: "Server endpoint",
     aiRequest: "AI prompt",
     askAi: "Get AI suggestions",
     dayPlan: "Day-by-day plan",
@@ -627,7 +652,10 @@ const uiText = {
     fuelOnlineStatusDefault: "Online prices apply to countries detected on route.",
     tollStatusDefault: "Tolls are estimated per country: vignette or €/km where applicable.",
     aiPromptDefault: "Suggest places to see along the route, good stops for kids, what is worth seeing at destination and what to avoid. Provide practical recommendations, day-by-day, with approximate distances.",
-    aiOutputDefault: "Server endpoint active. You can request suggestions without an API key in the browser after Amplify rewrite redirects /api/ai-suggestions to Lambda.",
+    aiOutputDefault: "Direct mode active. Choose the provider, enter the API key, and request suggestions without an AWS backend.",
+    aiDirectHint: "Direct mode: the key stays only in this browser tab and is not saved by the app.",
+    aiProxyHint: "AWS proxy: the app uses the server endpoint and does not ask for the key in the page.",
+    aiKeyPlaceholder: "selected provider key",
     fromPlaceholder: "e.g. Bucharest, Romania",
     toPlaceholder: "e.g. Athens, Greece",
     waypointPlaceholder: "e.g. Sofia, Bulgaria",
@@ -797,6 +825,10 @@ function applyLanguage(nextLanguage = language, options = {}) {
   setParentLabelText("#ferry", "ferryOneWay");
   setParentLabelText("#nightlyBudget", "lodgingNight");
   setParentLabelText("#foodDaily", "foodDay");
+  setParentLabelText("#aiProvider", "aiMode");
+  setParentLabelText("#aiModel", "aiModel");
+  setParentLabelText("#aiKey", "aiKey");
+  setParentLabelText("#aiEndpoint", "aiEndpoint");
   setParentLabelText("#aiPrompt", "aiRequest");
 
   setOwnText("#addWaypointBtn", "add");
@@ -826,6 +858,7 @@ function applyLanguage(nextLanguage = language, options = {}) {
   setPlaceholder("#waypointInput", "waypointPlaceholder");
   setPlaceholder("#routePathInput", "routePathPlaceholder");
   setPlaceholder("#childAges", "childAgesPlaceholder");
+  setPlaceholder("#aiKey", "aiKeyPlaceholder");
 
   document.querySelector("#fuelType option[value='gasoline']").textContent = t("gasoline");
   document.querySelector("#fuelType option[value='diesel']").textContent = t("diesel");
@@ -1630,14 +1663,27 @@ function syncAiUi() {
   const isProxy = aiProvider.value === "proxy";
   aiEndpoint.disabled = !isProxy;
   aiKey.disabled = isProxy;
+  aiModel.disabled = isProxy;
+  if (aiEndpointWrap) aiEndpointWrap.hidden = !isProxy;
+  if (aiKeyWrap) aiKeyWrap.hidden = isProxy;
+  if (aiModelWrap) aiModelWrap.hidden = isProxy;
+  if (aiModeHint) aiModeHint.textContent = isProxy ? t("aiProxyHint") : t("aiDirectHint");
 
   const output = aiOutput.textContent.trim();
-  const isOldHint = !output || /Completează API key-ul|cheia AI fără să o introduci|Endpoint server activ/.test(output);
+  const isOldHint = !output || /Completează API key-ul|cheia AI fără să o introduci|Endpoint server activ|Mod direct activ|AWS proxy|Server endpoint active|Direct mode active/.test(output);
   if (isProxy && isOldHint) {
-    aiOutput.textContent = "Endpoint server activ. Poți cere sugestii fără API key în pagină după ce rewrite-ul din Amplify trimite /api/ai-suggestions către Lambda.";
+    aiOutput.textContent = t("aiProxyHint");
   }
   if (!isProxy && isOldHint) {
-    aiOutput.textContent = "Mod direct activ. Completează o cheie Gemini doar dacă testezi fără Lambda.";
+    aiOutput.textContent = t("aiOutputDefault");
+  }
+}
+
+function syncAiModelForProvider() {
+  const provider = aiProvider.value;
+  const current = aiModel.value.trim();
+  if (!current || aiKnownDefaultModels.has(current)) {
+    aiModel.value = aiModelDefaults[provider] || defaults.aiModel;
   }
 }
 
@@ -1742,7 +1788,9 @@ function loadDefaults(stateOverride = {}, options = {}) {
   const state = { ...defaults, ...stateOverride, ...queryState };
   language = state.language === "en" ? "en" : "ro";
   theme = state.theme === "dark" ? "dark" : "light";
-  if (state.aiProvider === "gemini" && !state.aiKey) state.aiProvider = "proxy";
+  if (!directAiProviders.has(state.aiProvider) && state.aiProvider !== "proxy") {
+    state.aiProvider = defaults.aiProvider;
+  }
   fields.from.value = state.from;
   fields.to.value = state.to;
   fields.startDate.value = state.startDate;
@@ -1766,7 +1814,9 @@ function loadDefaults(stateOverride = {}, options = {}) {
   renderWaypoints(state.waypoints || []);
   renderFerrySegments(state.ferrySegments || []);
   aiProvider.value = state.aiProvider || defaults.aiProvider;
-  aiModel.value = state.aiModel || defaults.aiModel;
+  aiModel.value = (!state.aiModel || aiKnownDefaultModels.has(state.aiModel))
+    ? (aiModelDefaults[aiProvider.value] || defaults.aiModel)
+    : state.aiModel;
   aiKey.value = "";
   aiPrompt.value = state.aiPrompt || defaults.aiPrompt;
   aiEndpoint.value = state.aiEndpoint || defaults.aiEndpoint;
@@ -2892,8 +2942,8 @@ async function runAiSuggestions() {
   const endpoint = aiEndpoint.value.trim() || defaults.aiEndpoint;
   const model = aiModel.value.trim() || defaults.aiModel;
   const prompt = aiPrompt.value.trim() || defaults.aiPrompt;
-  if (provider === "gemini" && !key) {
-    showToast("Completează API key-ul Gemini.");
+  if (provider !== "proxy" && !key) {
+    showToast(language === "en" ? "Enter the selected provider API key." : "Completează API key-ul providerului ales.");
     return;
   }
   activateWorkspaceTab("ai");
@@ -2924,46 +2974,29 @@ Important: La finalul răspunsului tău (după recomandările text detaliate), a
       prompt: augmentedPrompt,
       context: buildAiContext(plan)
     };
-    if (provider !== "proxy") payload.model = model;
     const response = provider === "proxy"
       ? await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
-      : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `${augmentedPrompt}\n\nContext traseu:\n${buildAiContext(plan)}`
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.6,
-          maxOutputTokens: 1650
-        }
-      })
-    });
+      : await fetchDirectAi(provider, {
+        key,
+        model,
+        text: `${augmentedPrompt}\n\nContext traseu:\n${buildAiContext(plan)}`
+      });
     const data = await readAiJson(response, provider);
     if (!response.ok) {
       throw new Error(data.error?.message || "API-ul AI a întors eroare.");
     }
-    const text = provider === "proxy"
-      ? (data.text || data.result || data.output || "")
-      : data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("\n").trim();
+    const text = extractAiText(data, provider);
     if (!text) throw new Error("Nu am primit text de la AI.");
     showAiResult(text);
     aiOutput.scrollIntoView({ behavior: "smooth", block: "center" });
     render();
     showToast("Sugestiile AI au fost generate.");
   } catch (error) {
-    aiOutput.textContent = `Nu am putut genera sugestii AI.\n${error.message}`;
+    aiOutput.textContent = `Nu am putut genera sugestii AI.\n${formatAiError(error, provider)}`;
     aiOutput.classList.remove("has-result");
     openAiResultBtn.hidden = true;
     aiOutput.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2971,6 +3004,103 @@ Important: La finalul răspunsului tău (după recomandările text detaliate), a
   } finally {
     runAiBtn.disabled = false;
   }
+}
+
+async function fetchDirectAi(provider, { key, model, text }) {
+  if (provider === "openai") {
+    return fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model,
+        input: text,
+        temperature: 0.6,
+        max_output_tokens: 1650
+      })
+    });
+  }
+
+  if (provider === "anthropic") {
+    return fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1650,
+        temperature: 0.6,
+        messages: [{ role: "user", content: text }]
+      })
+    });
+  }
+
+  if (provider === "openrouter") {
+    return fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "Family Trip Planner"
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: text }],
+        temperature: 0.6,
+        max_tokens: 1650
+      })
+    });
+  }
+
+  return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": key
+    },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text }] }],
+      generationConfig: {
+        temperature: 0.6,
+        maxOutputTokens: 1650
+      }
+    })
+  });
+}
+
+function extractAiText(data, provider) {
+  if (provider === "proxy") return data.text || data.result || data.output || "";
+  if (provider === "openai") {
+    return data.output_text || data.output
+      ?.flatMap((item) => item.content || [])
+      .map((item) => item.text || "")
+      .join("\n")
+      .trim() || "";
+  }
+  if (provider === "anthropic") {
+    return data.content
+      ?.map((item) => item.text || "")
+      .join("\n")
+      .trim() || "";
+  }
+  if (provider === "openrouter") return (data.choices?.[0]?.message?.content || "").trim();
+  return data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("\n").trim() || "";
+}
+
+function formatAiError(error, provider) {
+  if (error instanceof TypeError && provider !== "proxy") {
+    return language === "en"
+      ? "The browser blocked the direct provider request or the network failed. Try Gemini/OpenRouter direct mode, or use AWS proxy for providers that block browser calls."
+      : "Browserul a blocat apelul direct către provider sau rețeaua a eșuat. Încearcă Gemini/OpenRouter direct sau folosește AWS proxy pentru providerii care blochează apelurile din browser.";
+  }
+  return error.message || "AI indisponibil.";
 }
 
 async function readAiJson(response, provider) {
@@ -3891,13 +4021,19 @@ fields.to.addEventListener("input", () => {
 
 [aiProvider, aiEndpoint, aiModel, aiKey, aiPrompt].forEach((field) => {
   field.addEventListener("input", () => {
-    if (field === aiProvider) syncAiUi();
+    if (field === aiProvider) {
+      syncAiModelForProvider();
+      syncAiUi();
+    }
     window.clearTimeout(render.inputTimer);
     render.inputTimer = window.setTimeout(render, 220);
   });
 });
 
-aiProvider.addEventListener("change", syncAiUi);
+aiProvider.addEventListener("change", () => {
+  syncAiModelForProvider();
+  syncAiUi();
+});
 
 routeZonesEl.addEventListener("input", () => {
   updateRouteTotalsFromZones();

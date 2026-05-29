@@ -456,10 +456,37 @@
                 </div>
               </div>
               <div class="ai-panel">
-                <input id="aiProvider" type="hidden" value="proxy" />
-                <input id="aiModel" type="hidden" value="gemini-2.5-flash" />
-                <input id="aiEndpoint" type="hidden" value="/api/ai-suggestions" />
-                <input id="aiKey" type="hidden" value="" />
+                <div class="ai-config-grid">
+                  <label>
+                    Mod AI
+                    <select id="aiProvider">
+                      <option value="gemini">Direct: Gemini</option>
+                      <option value="openai">Direct: OpenAI</option>
+                      <option value="anthropic">Direct: Anthropic</option>
+                      <option value="openrouter">Direct: OpenRouter</option>
+                      <option value="proxy">AWS proxy</option>
+                    </select>
+                  </label>
+                  <label id="aiModelWrap">
+                    Model
+                    <input id="aiModel" type="text" list="aiModelHints" value="gemini-2.5-flash" />
+                  </label>
+                  <label id="aiKeyWrap">
+                    API key
+                    <input id="aiKey" type="password" autocomplete="off" placeholder="cheia providerului ales" />
+                  </label>
+                  <label id="aiEndpointWrap" hidden>
+                    Endpoint server
+                    <input id="aiEndpoint" type="url" value="/api/ai-suggestions" />
+                  </label>
+                </div>
+                <datalist id="aiModelHints">
+                  <option value="gemini-2.5-flash"></option>
+                  <option value="gpt-4.1-mini"></option>
+                  <option value="claude-sonnet-4-20250514"></option>
+                  <option value="google/gemini-2.5-flash"></option>
+                </datalist>
+                <p id="aiModeHint" class="ai-mode-hint">Mod direct: cheia rămâne doar în browser și nu este salvată în aplicație.</p>
                 <div class="ai-brief">
                   <label>
                     Stil concediu

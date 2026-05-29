@@ -79,6 +79,10 @@ http://127.0.0.1:4173/?from=Craiova%2C%20Romania&to=Bari%2C%20Italy&auto=1
 
 ### Backend
 
+Pentru modul AI direct din interfață nu este obligatoriu backendul. Alegi providerul în tabul `AI`, pui cheia API și aplicația face apelul direct din browser.
+
+Backendul rămâne util ca variantă mai sigură pentru public/producție:
+
 1. Intri în CloudFormation.
 2. Alegi stack-ul existent pentru aplicație.
 3. Apeși `Update`.
