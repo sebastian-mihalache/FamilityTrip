@@ -5,11 +5,11 @@ Parameters:
   GeminiApiKey:
     Type: String
     NoEcho: true
-    Description: Gemini API key used only by the Lambda proxy.
+    Description: AI provider API key used only by the Lambda proxy. Current template uses Gemini by default.
   GeminiModel:
     Type: String
     Default: gemini-2.5-flash
-    Description: Gemini model used when the frontend does not send a model.
+    Description: AI model used when the frontend does not send a model.
   AllowedOrigin:
     Type: String
     Default: "*"
@@ -40,6 +40,8 @@ Resources:
       Timeout: 25
       Environment:
         Variables:
+          AI_PROVIDER_API_KEY: !Ref GeminiApiKey
+          AI_MODEL: !Ref GeminiModel
           GEMINI_API_KEY: !Ref GeminiApiKey
           GEMINI_MODEL: !Ref GeminiModel
           ALLOWED_ORIGIN: !Ref AllowedOrigin
@@ -74,16 +76,16 @@ Resources:
                 return await handleFuelPrices(event);
               }
 
-              const apiKey = process.env.GEMINI_API_KEY;
+              const apiKey = process.env.AI_PROVIDER_API_KEY || process.env.GEMINI_API_KEY;
               if (!apiKey) {
-                return json(500, { error: "GEMINI_API_KEY is not configured." });
+                return json(500, { error: "AI provider key is not configured." });
               }
 
               const rawBody = event.isBase64Encoded
                 ? Buffer.from(event.body || "", "base64").toString("utf8")
                 : (event.body || "{}");
               const body = JSON.parse(rawBody);
-              const model = body.model || process.env.GEMINI_MODEL || "gemini-2.5-flash";
+              const model = body.model || process.env.AI_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash";
               const prompt = body.prompt || "";
               const context = body.context || "";
               const text = `${prompt}\n\nContext traseu:\n${context}`;
@@ -105,7 +107,7 @@ Resources:
 
               const data = await response.json();
               if (!response.ok) {
-                return json(response.status, { error: data.error?.message || "Gemini request failed." });
+                return json(response.status, { error: data.error?.message || "AI provider request failed." });
               }
 
               const output = data.candidates?.[0]?.content?.parts

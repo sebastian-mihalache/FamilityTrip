@@ -28,7 +28,7 @@ Interfața oferă un tablou de bord premium, complet echipat cu hărți interact
 - **Taxe și Vignete:** Estimează automat costul de vignete (ex: RO, BG, HU, AT, SI, SK, CZ) sau cost per kilometru de autostradă (ex: IT, FR, GR, HR).
 
 ### 🤖 Sugestii AI Structurate și Dinamice
-- **Generare Gemini:** Endpoint securizat `/api/ai-suggestions` (recomandat prin Lambda pe AWS) care generează recomandări complete.
+- **Generare AI prin proxy securizat:** Endpointul `/api/ai-suggestions` rulează prin Lambda pe AWS, iar cheia providerului rămâne în backend, nu în browser sau Git.
 - **Panouri Dinamice Populate Automat:** Asistentul AI returnează acum un bloc JSON structurat care populează automat secțiunile de jos:
   - **Opriri pe traseu:** Locuri de pauză (km, utilitate pentru copii, parcuri).
   - **Atracții turistice:** Locuri emblematice de văzut pe parcurs.
@@ -76,5 +76,5 @@ Deschide apoi `http://localhost:5173/` sau `http://localhost:8000/`.
 ## Configurare Deploy Cloud (AWS)
 
 1. Găzduiește frontend-ul prin **AWS Amplify**.
-2. Desfășoară backend-ul serverless folosind fișierul CloudFormation aflat în `aws/cloudformation-ai-proxy.yaml` (creează API Gateway-ul, endpoint-urile `/api/ai-suggestions` și `/api/fuel-prices`, Lambda-ul aferent și încarcă cheile API securizat).
+2. Desfășoară backend-ul serverless folosind fișierul CloudFormation aflat în `aws/cloudformation-ai-proxy.yaml` (creează API Gateway-ul, endpoint-urile `/api/ai-suggestions` și `/api/fuel-prices`, Lambda-ul aferent și ține cheia AI doar în AWS).
 3. Detalii complete se găsesc în [aws/README.md](aws/README.md).

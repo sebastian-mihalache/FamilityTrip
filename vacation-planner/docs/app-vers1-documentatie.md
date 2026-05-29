@@ -83,7 +83,7 @@ http://127.0.0.1:4173/?from=Craiova%2C%20Romania&to=Bari%2C%20Italy&auto=1
 2. Alegi stack-ul existent pentru aplicație.
 3. Apeși `Update`.
 4. Încarci `aws/cloudformation-ai-proxy.yaml`.
-5. La parametri păstrezi `GeminiApiKey` ca existing value, dacă te întreabă.
+5. La parametri păstrezi cheia AI ca existing value, dacă te întreabă. Cheia nu se salvează în Git; pentru exemplu fără secret real vezi `aws/example.env`.
 6. Confirmi update-ul.
 
 ### Rewrites în Amplify

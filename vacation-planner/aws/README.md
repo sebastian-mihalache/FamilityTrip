@@ -4,7 +4,7 @@ Varianta recomandată pentru început, mai ales cu credit de test:
 
 1. Frontend static în AWS Amplify Hosting.
 2. Backend AI minim prin Lambda + API Gateway HTTP API.
-3. Cheia Gemini stă în Lambda ca `GEMINI_API_KEY`, nu în browser.
+3. Cheia AI stă numai în Lambda, nu în browser și nu în Git. Template-ul actual folosește Gemini ca provider implicit.
 4. Aplicația folosește în continuare endpointul `/api/ai-suggestions`.
 
 Evită pentru prima versiune EC2, NAT Gateway, load balancer sau baze de date. Nu ai nevoie de ele încă și pot consuma creditul fără să aducă valoare aplicației.
@@ -30,10 +30,12 @@ Evită pentru prima versiune EC2, NAT Gateway, load balancer sau baze de date. N
 2. Creează stack nou și încarcă `aws/cloudformation-ai-proxy.yaml`.
 3. Alege o regiune apropiată, de exemplu `eu-central-1` sau `eu-west-1`.
 4. Completează parametrii:
-   - `GeminiApiKey`: cheia ta Gemini.
-   - `GeminiModel`: `gemini-2.5-flash`.
+   - `GeminiApiKey`: cheia providerului AI pentru template-ul curent. Nu o salva în fișiere locale reale.
+   - `GeminiModel`: `gemini-2.5-flash` sau modelul configurat pentru provider.
    - `AllowedOrigin`: pentru primul test poți pune `*`; după ce ai URL-ul Amplify, schimbă-l în URL-ul aplicației.
 5. La final, intră în tabul `Outputs` și copiază `AiEndpoint`.
+
+Pentru valori exemplu fără secrete reale, vezi `aws/example.env`. Nu copia niciodată o cheie reală în GitHub sau în documentație.
 
 Template-ul creează:
 
@@ -63,7 +65,7 @@ Important:
 - adaugă și varianta cu slash final `/api/ai-suggestions/`, ca fallback;
 - dacă endpointul răspunde cu `301` către `/api/ai-suggestions/` sau `404` de la S3, rewrite-ul nu este prins încă.
 
-Dacă nu pui rewrite-ul, aplicația tot poate folosi AI-ul, dar va trebui să introduci URL-ul complet în câmpul `Endpoint AI`. Cheia Gemini tot rămâne ascunsă în Lambda.
+Dacă nu pui rewrite-ul, aplicația tot poate folosi AI-ul, dar va trebui să introduci URL-ul complet în câmpul `Endpoint AI`. Cheia AI rămâne ascunsă în Lambda.
 
 ## 3.1 După modificări locale
 
@@ -82,6 +84,7 @@ Pentru Git deploy, doar faci commit/push; pentru manual deploy trebuie reîncăr
 - Nu porni EC2 doar pentru aplicația asta statică.
 - Nu lăsa `AllowedOrigin: *` după ce treci de test.
 - Pentru producție, mută cheia în Secrets Manager sau SSM Parameter Store; variabila de mediu este ok pentru primul deploy funcțional.
+- Revocă imediat orice token/API key care a fost lipit accidental în chat, terminal sau GitHub.
 
 ## 5. Test după deploy
 

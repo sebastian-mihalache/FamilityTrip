@@ -16,13 +16,13 @@ export const handler = async (event) => {
       return await handleFuelPrices(event);
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.AI_PROVIDER_API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return json(500, { error: "GEMINI_API_KEY is not configured." });
+      return json(500, { error: "AI provider key is not configured." });
     }
 
     const body = JSON.parse(event.body || "{}");
-    const model = body.model || process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const model = body.model || process.env.AI_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash";
     const prompt = body.prompt || "";
     const context = body.context || "";
     const text = `${prompt}\n\nContext traseu:\n${context}`;
@@ -44,7 +44,7 @@ export const handler = async (event) => {
 
     const data = await response.json();
     if (!response.ok) {
-      return json(response.status, { error: data.error?.message || "Gemini request failed." });
+      return json(response.status, { error: data.error?.message || "AI provider request failed." });
     }
 
     const output = data.candidates?.[0]?.content?.parts
